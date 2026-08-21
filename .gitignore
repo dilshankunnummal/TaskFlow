@@ -20,3 +20,5 @@ android/local.properties
 *.log
 .flutter-plugins
 .flutter-plugins-dependencies
+.gitkeep
+.zip

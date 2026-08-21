@@ -8,6 +8,9 @@ import 'package:taskflow/core/network/cubit/connectivity_cubit.dart';
 import 'package:taskflow/core/network/network_info.dart';
 import 'package:taskflow/core/network/simulated_network.dart';
 import 'package:taskflow/core/utils/id_generator.dart';
+import 'package:taskflow/features/auth/data/datasources/auth_local_datasource.dart';
+import 'package:taskflow/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -59,6 +62,18 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<MockJsonLoader>()) {
     getIt.registerLazySingleton<MockJsonLoader>(() => MockJsonLoader(AppEnvironment.current));
+  }
+
+  if (!getIt.isRegistered<AuthLocalDataSource>()) {
+    getIt.registerLazySingleton<AuthLocalDataSource>(
+          () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+    );
+  }
+
+  if (!getIt.isRegistered<AuthRepository>()) {
+    getIt.registerLazySingleton<AuthRepository>(
+          () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
+    );
   }
 }
 
