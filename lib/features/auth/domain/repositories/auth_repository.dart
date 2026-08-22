@@ -1,4 +1,5 @@
 import 'package:taskflow/core/error/result.dart';
+import 'package:taskflow/features/auth/domain/entities/register_request.dart';
 import 'package:taskflow/features/auth/domain/entities/user_entity.dart';
 
 abstract interface class AuthRepository {
@@ -11,4 +12,6 @@ abstract interface class AuthRepository {
   Future<Result<void>> logout();
 
   Future<Result<UserEntity?>> getCurrentUser();
+
+  Future<Result<void>> register(RegisterRequest request);
 }

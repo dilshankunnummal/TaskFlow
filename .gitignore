@@ -6,7 +6,7 @@ build/
 *.g.dart
 *.freezed.dart
 *.config.dart
-
+New folder
 .idea/
 *.iml
 .vscode/

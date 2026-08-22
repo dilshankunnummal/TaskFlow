@@ -34,4 +34,43 @@ abstract final class Validators {
     }
     return null;
   }
+
+  static String? fullName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Full name is required.';
+    }
+    if (value.trim().length < 3) {
+      return 'Full name must be at least 3 characters.';
+    }
+    return null;
+  }
+
+  static String? strongPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required.';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain an uppercase letter.';
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain a number.';
+    }
+    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=~`\[\]/\\;]'))) {
+      return 'Password must contain a special character.';
+    }
+    return null;
+  }
+
+  static String? confirmPassword(String? value, String password) {
+    if (value == null || value.isEmpty) {
+      return 'Please confirm your password.';
+    }
+    if (value != password) {
+      return 'Passwords do not match.';
+    }
+    return null;
+  }
 }

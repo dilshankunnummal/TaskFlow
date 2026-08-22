@@ -11,6 +11,7 @@ import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/utils/validators.dart';
 import 'package:taskflow/core/widgets/buttons/app_primary_button.dart';
 import 'package:taskflow/core/widgets/buttons/app_secondary_button.dart';
+import 'package:taskflow/core/widgets/buttons/app_text_button.dart';
 import 'package:taskflow/core/widgets/error/app_error_banner.dart';
 import 'package:taskflow/core/widgets/inputs/app_text_field.dart';
 import 'package:taskflow/features/auth/presentation/bloc/login_bloc.dart';
@@ -38,7 +39,8 @@ final class _LoginView extends StatefulWidget {
   State<_LoginView> createState() => _LoginViewState();
 }
 
-final class _LoginViewState extends State<_LoginView> with SingleTickerProviderStateMixin {
+final class _LoginViewState extends State<_LoginView>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -47,7 +49,8 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
     vsync: this,
     duration: AppMotion.page,
   );
-  late final Animation<double> _fade = CurvedAnimation(parent: _fadeController, curve: AppMotion.curve);
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _fadeController, curve: AppMotion.curve);
 
   @override
   void initState() {
@@ -89,7 +92,8 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight - AppSpacing.xl * 2),
+                  constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - AppSpacing.xl * 2),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 440),
@@ -106,28 +110,38 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
                               Text(
                                 AppStrings.loginWelcomeTitle,
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineMedium,
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Text(
                                 AppStrings.loginWelcomeSubtitle,
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.64),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.64),
                                     ),
                               ),
                               const SizedBox(height: AppSpacing.xxl),
                               BlocBuilder<LoginBloc, LoginState>(
                                 buildWhen: (previous, current) =>
-                                    current is LoginFailure || previous is LoginFailure,
+                                    current is LoginFailure ||
+                                    previous is LoginFailure,
                                 builder: (context, state) {
                                   if (state is LoginFailure) {
                                     return Padding(
-                                      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                                      padding: const EdgeInsets.only(
+                                          bottom: AppSpacing.lg),
                                       child: AppErrorBanner(
                                         message: state.message.isNotEmpty
                                             ? state.message
-                                            : AppStrings.commonSomethingWentWrong,
+                                            : AppStrings
+                                                .commonSomethingWentWrong,
                                       ),
                                     );
                                   }
@@ -136,7 +150,8 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
                               ),
                               BlocBuilder<LoginBloc, LoginState>(
                                 buildWhen: (previous, current) =>
-                                    previous.email != current.email || previous.emailError != current.emailError,
+                                    previous.email != current.email ||
+                                    previous.emailError != current.emailError,
                                 builder: (context, state) {
                                   return AppTextField(
                                     controller: _emailController,
@@ -148,7 +163,9 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
                                     prefixIcon: Icons.mail_outline_rounded,
                                     autofillHints: const [AutofillHints.email],
                                     validator: Validators.email,
-                                    onChanged: (value) => context.read<LoginBloc>().add(EmailChanged(value)),
+                                    onChanged: (value) => context
+                                        .read<LoginBloc>()
+                                        .add(EmailChanged(value)),
                                   );
                                 },
                               ),
@@ -156,37 +173,52 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
                               BlocBuilder<LoginBloc, LoginState>(
                                 buildWhen: (previous, current) =>
                                     previous.password != current.password ||
-                                    previous.passwordError != current.passwordError ||
-                                    previous.obscurePassword != current.obscurePassword,
+                                    previous.passwordError !=
+                                        current.passwordError ||
+                                    previous.obscurePassword !=
+                                        current.obscurePassword,
                                 builder: (context, state) {
                                   return PasswordField(
                                     controller: _passwordController,
                                     errorText: state.passwordError,
                                     obscureText: state.obscurePassword,
-                                    onToggleVisibility: () =>
-                                        context.read<LoginBloc>().add(const PasswordVisibilityToggled()),
-                                    onChanged: (value) => context.read<LoginBloc>().add(PasswordChanged(value)),
+                                    onToggleVisibility: () => context
+                                        .read<LoginBloc>()
+                                        .add(const PasswordVisibilityToggled()),
+                                    onChanged: (value) => context
+                                        .read<LoginBloc>()
+                                        .add(PasswordChanged(value)),
                                   );
                                 },
                               ),
                               const SizedBox(height: AppSpacing.md),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   BlocBuilder<LoginBloc, LoginState>(
-                                    buildWhen: (previous, current) => previous.rememberMe != current.rememberMe,
+                                    buildWhen: (previous, current) =>
+                                        previous.rememberMe !=
+                                        current.rememberMe,
                                     builder: (context, state) {
                                       return RememberMeCheckbox(
                                         value: state.rememberMe,
-                                        onChanged: (value) =>
-                                            context.read<LoginBloc>().add(RememberMeToggled(value)),
+                                        onChanged: (value) => context
+                                            .read<LoginBloc>()
+                                            .add(RememberMeToggled(value)),
                                       );
                                     },
                                   ),
                                   Text(
                                     AppStrings.loginForgotPassword,
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withOpacity(0.38),
                                         ),
                                   ),
                                 ],
@@ -199,21 +231,29 @@ final class _LoginViewState extends State<_LoginView> with SingleTickerProviderS
                                   return AppPrimaryButton(
                                     label: AppStrings.loginButtonLabel,
                                     isLoading: state is LoginLoading,
-                                    onPressed: state is LoginValid ? () => _submit(context, state) : null,
+                                    onPressed: state is LoginValid
+                                        ? () => _submit(context, state)
+                                        : null,
                                   );
                                 },
                               ),
-                              const SizedBox(height: AppSpacing.md),
-                              const AppSecondaryButton(
+                              const SizedBox(height: AppSpacing.lg),
+                              AppTextButton(
                                 label: AppStrings.loginRegisterButtonLabel,
-                                onPressed: null,
+                                onPressed: () => context.go(AppRoutes.register),
                               ),
                               const SizedBox(height: AppSpacing.xxl),
                               Text(
                                 'v${AppConstants.appVersion}',
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.32),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.32),
                                     ),
                               ),
                             ],

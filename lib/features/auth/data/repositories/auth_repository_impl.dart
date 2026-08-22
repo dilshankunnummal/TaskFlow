@@ -2,6 +2,7 @@ import 'package:taskflow/core/error/result.dart';
 import 'package:taskflow/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:taskflow/features/auth/data/models/login_request.dart';
 import 'package:taskflow/features/auth/data/models/session_model.dart';
+import 'package:taskflow/features/auth/domain/entities/register_request.dart';
 import 'package:taskflow/features/auth/domain/entities/user_entity.dart';
 import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
 
@@ -53,5 +54,10 @@ final class AuthRepositoryImpl implements AuthRepository {
       final user = await _localDataSource.getCurrentUser();
       return user?.toEntity();
     });
+  }
+
+  @override
+  Future<Result<void>> register(RegisterRequest request) {
+    return Result.guard(() => _localDataSource.register(request));
   }
 }

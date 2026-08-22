@@ -8,6 +8,7 @@ import 'package:taskflow/features/auth/data/models/login_request.dart';
 import 'package:taskflow/features/auth/data/models/login_response.dart';
 import 'package:taskflow/features/auth/data/models/session_model.dart';
 import 'package:taskflow/features/auth/data/models/user_model.dart';
+import 'package:taskflow/features/auth/domain/entities/register_request.dart';
 
 abstract interface class AuthLocalDataSource {
   Future<bool> hasValidSession();
@@ -19,6 +20,8 @@ abstract interface class AuthLocalDataSource {
   Future<void> clearSession();
 
   Future<UserModel?> getCurrentUser();
+
+  Future<void> register(RegisterRequest request);
 }
 
 final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -37,13 +40,16 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<bool> hasValidSession() async {
     try {
-      final accessToken = await _secureStorage.read(key: SecureStorageKeys.accessToken);
+      final accessToken =
+          await _secureStorage.read(key: SecureStorageKeys.accessToken);
       if (accessToken == null || accessToken.isEmpty) {
         return false;
       }
 
-      final expiresAtRaw = await _secureStorage.read(key: SecureStorageKeys.accessTokenExpiresAt);
-      final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
+      final expiresAtRaw = await _secureStorage.read(
+          key: SecureStorageKeys.accessTokenExpiresAt);
+      final expiresAt =
+          expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
       if (expiresAt == null) {
         return true;
       }
@@ -60,14 +66,17 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     _simulatedNetwork.throwIfForced(request.email.trim().toLowerCase());
 
     final authMock = await _mockJsonLoader.object('auth_mock');
-    final credentials = (authMock['test_credentials'] as List).cast<Map<String, dynamic>>();
+    final credentials =
+        (authMock['test_credentials'] as List).cast<Map<String, dynamic>>();
     final expiresInSeconds = authMock['access_token_expires_in_seconds'] as int;
 
     final normalizedEmail = request.email.trim().toLowerCase();
     Map<String, dynamic>? matchedCredential;
     for (final credential in credentials) {
-      final credentialEmail = (credential['email'] as String).trim().toLowerCase();
-      if (credentialEmail == normalizedEmail && credential['password'] == request.password) {
+      final credentialEmail =
+          (credential['email'] as String).trim().toLowerCase();
+      if (credentialEmail == normalizedEmail &&
+          credential['password'] == request.password) {
         matchedCredential = credential;
         break;
       }
@@ -90,7 +99,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       throw const NotFoundException('No account found for these credentials.');
     }
 
-    final userModel = UserModel.fromJson(matchedUser, orgId: matchedCredential['org_id'] as String);
+    final userModel = UserModel.fromJson(matchedUser,
+        orgId: matchedCredential['org_id'] as String);
 
     return LoginResponse(
       accessToken: 'access-${_idGenerator.generate()}',
@@ -104,22 +114,28 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> persistSession(SessionModel session) async {
     try {
       await Future.wait([
-        _secureStorage.write(key: SecureStorageKeys.accessToken, value: session.accessToken),
-        _secureStorage.write(key: SecureStorageKeys.refreshToken, value: session.refreshToken),
+        _secureStorage.write(
+            key: SecureStorageKeys.accessToken, value: session.accessToken),
+        _secureStorage.write(
+            key: SecureStorageKeys.refreshToken, value: session.refreshToken),
         _secureStorage.write(
           key: SecureStorageKeys.accessTokenExpiresAt,
           value: session.accessTokenExpiresAt.toIso8601String(),
         ),
-        _secureStorage.write(key: SecureStorageKeys.currentUserId, value: session.userId),
-        _secureStorage.write(key: SecureStorageKeys.currentOrgId, value: session.orgId),
-        _secureStorage.write(key: SecureStorageKeys.currentUserRole, value: session.role),
+        _secureStorage.write(
+            key: SecureStorageKeys.currentUserId, value: session.userId),
+        _secureStorage.write(
+            key: SecureStorageKeys.currentOrgId, value: session.orgId),
+        _secureStorage.write(
+            key: SecureStorageKeys.currentUserRole, value: session.role),
         _secureStorage.write(
           key: SecureStorageKeys.loginTimestamp,
           value: session.loginTimestamp.toIso8601String(),
         ),
       ]);
     } catch (_) {
-      throw const CacheException('Unable to persist the authentication session.');
+      throw const CacheException(
+          'Unable to persist the authentication session.');
     }
   }
 
@@ -143,12 +159,14 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<UserModel?> getCurrentUser() async {
     try {
-      final userId = await _secureStorage.read(key: SecureStorageKeys.currentUserId);
+      final userId =
+          await _secureStorage.read(key: SecureStorageKeys.currentUserId);
       if (userId == null) {
         return null;
       }
 
-      final orgId = await _secureStorage.read(key: SecureStorageKeys.currentOrgId) ?? '';
+      final orgId =
+          await _secureStorage.read(key: SecureStorageKeys.currentOrgId) ?? '';
       final users = await _mockJsonLoader.section('users');
       Map<String, dynamic>? matchedUser;
       for (final user in users) {
@@ -165,6 +183,20 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       return UserModel.fromJson(matchedUser, orgId: orgId);
     } catch (_) {
       throw const CacheException('Unable to read the current user.');
+    }
+  }
+
+  static const String _duplicateRegistrationEmail =
+      'ava.admin@nimbusdigital.test';
+
+  @override
+  Future<void> register(RegisterRequest request) async {
+    await _simulatedNetwork.delay();
+    _simulatedNetwork.throwIfForced(request.email.trim().toLowerCase());
+
+    final normalizedEmail = request.email.trim().toLowerCase();
+    if (normalizedEmail == _duplicateRegistrationEmail) {
+      throw const ValidationException('Email already registered');
     }
   }
 }

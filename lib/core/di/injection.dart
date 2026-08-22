@@ -14,7 +14,9 @@ import 'package:taskflow/features/auth/data/services/token_refresh_service.dart'
 import 'package:taskflow/features/auth/data/services/token_refresh_service_impl.dart';
 import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
 import 'package:taskflow/features/auth/domain/usecases/login_usecase.dart';
+import 'package:taskflow/features/auth/domain/usecases/register_usecase.dart';
 import 'package:taskflow/features/auth/presentation/bloc/login_bloc.dart';
+import 'package:taskflow/features/auth/presentation/bloc/register_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -95,6 +97,14 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<LoginBloc>()) {
     getIt.registerFactory<LoginBloc>(() => LoginBloc(getIt<LoginUseCase>()));
+  }
+
+  if (!getIt.isRegistered<RegisterUseCase>()) {
+    getIt.registerLazySingleton<RegisterUseCase>(() => RegisterUseCase(getIt<AuthRepository>()));
+  }
+
+  if (!getIt.isRegistered<RegisterBloc>()) {
+    getIt.registerFactory<RegisterBloc>(() => RegisterBloc(getIt<RegisterUseCase>()));
   }
 }
 

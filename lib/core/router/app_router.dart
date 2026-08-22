@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:taskflow/core/router/app_routes.dart';
 import 'package:taskflow/core/widgets/shell/bootstrap_placeholder_page.dart';
 import 'package:taskflow/features/auth/presentation/pages/login_page.dart';
+import 'package:taskflow/features/auth/presentation/pages/register_page.dart';
 import 'package:taskflow/features/auth/presentation/pages/splash_page.dart';
 
 final class AppRouter {
@@ -18,6 +19,10 @@ final class AppRouter {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterPage(),
       ),
       GoRoute(
         path: AppRoutes.dashboard,
