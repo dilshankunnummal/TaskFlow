@@ -101,12 +101,12 @@ final class _SplashViewState extends State<_SplashView> with SingleTickerProvide
                           builder: (context, state) {
                             return switch (state) {
                               SplashFailure(:final message) => AppErrorState(
-                                message: message,
-                                onRetry: () => context
-                                    .read<SplashBloc>()
-                                    .add(const CheckAuthenticationStatus()),
-                              ),
-                              _ => const AppLoadingIndicator(message: AppStrings.splashLoadingText),
+                                  message: message,
+                                  onRetry: () => context
+                                      .read<SplashBloc>()
+                                      .add(const CheckAuthenticationStatus()),
+                                ),
+                              _ => AppLoadingIndicator(message: AppStrings.splashLoadingText),
                             };
                           },
                         ),

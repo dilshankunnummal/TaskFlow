@@ -10,7 +10,11 @@ import 'package:taskflow/core/network/simulated_network.dart';
 import 'package:taskflow/core/utils/id_generator.dart';
 import 'package:taskflow/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:taskflow/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:taskflow/features/auth/data/services/token_refresh_service.dart';
+import 'package:taskflow/features/auth/data/services/token_refresh_service_impl.dart';
 import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
+import 'package:taskflow/features/auth/domain/usecases/login_usecase.dart';
+import 'package:taskflow/features/auth/presentation/bloc/login_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -66,14 +70,31 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<AuthLocalDataSource>()) {
     getIt.registerLazySingleton<AuthLocalDataSource>(
-          () => AuthLocalDataSourceImpl(getIt<FlutterSecureStorage>()),
+      () => AuthLocalDataSourceImpl(
+        getIt<FlutterSecureStorage>(),
+        getIt<MockJsonLoader>(),
+        getIt<SimulatedNetwork>(),
+        getIt<IdGenerator>(),
+      ),
     );
   }
 
   if (!getIt.isRegistered<AuthRepository>()) {
     getIt.registerLazySingleton<AuthRepository>(
-          () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
+      () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
     );
+  }
+
+  if (!getIt.isRegistered<TokenRefreshService>()) {
+    getIt.registerLazySingleton<TokenRefreshService>(TokenRefreshServiceImpl.new);
+  }
+
+  if (!getIt.isRegistered<LoginUseCase>()) {
+    getIt.registerLazySingleton<LoginUseCase>(() => LoginUseCase(getIt<AuthRepository>()));
+  }
+
+  if (!getIt.isRegistered<LoginBloc>()) {
+    getIt.registerFactory<LoginBloc>(() => LoginBloc(getIt<LoginUseCase>()));
   }
 }
 

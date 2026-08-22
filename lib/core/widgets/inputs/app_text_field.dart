@@ -16,6 +16,7 @@ final class AppTextField extends StatelessWidget {
     this.onChanged,
     this.autofillHints,
     this.enabled = true,
+    this.validator,
   });
 
   final TextEditingController? controller;
@@ -30,6 +31,7 @@ final class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final Iterable<String>? autofillHints;
   final bool enabled;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +42,7 @@ final class AppTextField extends StatelessWidget {
           Text(label!, style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: AppSpacing.sm),
         ],
-        TextField(
+        TextFormField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
@@ -48,6 +50,8 @@ final class AppTextField extends StatelessWidget {
           onChanged: onChanged,
           autofillHints: autofillHints,
           enabled: enabled,
+          validator: validator,
+          autovalidateMode: validator != null ? AutovalidateMode.onUserInteraction : AutovalidateMode.disabled,
           decoration: InputDecoration(
             hintText: hintText,
             errorText: errorText,

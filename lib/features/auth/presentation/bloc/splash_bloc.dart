@@ -11,16 +11,16 @@ final class SplashBloc extends Bloc<SplashEvent, SplashState> {
   final AuthRepository _authRepository;
 
   Future<void> _onCheckAuthenticationStatus(
-      CheckAuthenticationStatus event,
-      Emitter<SplashState> emit,
-      ) async {
+    CheckAuthenticationStatus event,
+    Emitter<SplashState> emit,
+  ) async {
     emit(const SplashLoading());
 
     final result = await _authRepository.checkAuthenticationStatus();
 
     result.fold(
-          (failure) => emit(SplashFailure(failure.message)),
-          (isAuthenticated) => emit(isAuthenticated ? const Authenticated() : const Unauthenticated()),
+      (failure) => emit(SplashFailure(failure.message)),
+      (isAuthenticated) => emit(isAuthenticated ? const Authenticated() : const Unauthenticated()),
     );
   }
 }

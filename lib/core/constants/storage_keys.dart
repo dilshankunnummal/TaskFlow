@@ -3,6 +3,9 @@ abstract final class SecureStorageKeys {
   static const String refreshToken = 'taskflow.refresh_token';
   static const String accessTokenExpiresAt = 'taskflow.access_token_expires_at';
   static const String currentUserId = 'taskflow.current_user_id';
+  static const String currentOrgId = 'taskflow.current_org_id';
+  static const String currentUserRole = 'taskflow.current_user_role';
+  static const String loginTimestamp = 'taskflow.login_timestamp';
 }
 
 abstract final class HiveBoxNames {

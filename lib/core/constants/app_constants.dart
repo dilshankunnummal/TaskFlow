@@ -1,5 +1,6 @@
 abstract final class AppConstants {
   static const String appName = 'TaskFlow';
+  static const String appVersion = '0.1.0';
 
   static const int defaultPageSize = 20;
   static const int maxSearchResults = 50;
