@@ -63,8 +63,6 @@ void main() {
       expect(buildBloc().state, const TaskDetailsInitial());
     });
 
-    // ── LoadTaskDetails ───────────────────────────────────────────────────────
-
     blocTest<TaskDetailsBloc, TaskDetailsState>(
       'emits [Loading, Success] when LoadTaskDetails succeeds',
       build: () {
@@ -111,14 +109,12 @@ void main() {
       ],
     );
 
-    // ── Offline / stale ───────────────────────────────────────────────────────
-
     blocTest<TaskDetailsBloc, TaskDetailsState>(
       'emits [Loading, Success(isStale)] when offline but cached data exists',
       build: () {
         when(() => getTaskDetails(taskId: taskId)).thenAnswer(
-          (_) async =>
-              Left(OfflineFailure(taskDetails, 'Offline. Showing cached task details.')),
+          (_) async => Left(OfflineFailure(
+              taskDetails, 'Offline. Showing cached task details.')),
         );
         return buildBloc();
       },
@@ -149,8 +145,6 @@ void main() {
       ],
     );
 
-    // ── RefreshTaskDetails ────────────────────────────────────────────────────
-
     blocTest<TaskDetailsBloc, TaskDetailsState>(
       'RefreshTaskDetails emits Success without a prior Loading state',
       build: () {
@@ -158,12 +152,9 @@ void main() {
             .thenAnswer((_) async => Right(taskDetails));
         return buildBloc();
       },
-      // Seed with Error so the transition Error → Success is observable
-      // (avoids Bloc equality deduplication if seed == result).
       seed: () => const TaskDetailsError('previous error'),
       act: (bloc) => bloc.add(const RefreshTaskDetails(taskId)),
       expect: () => [
-        // No TaskDetailsLoading — refresh is silent
         TaskDetailsSuccess(
           task: task,
           assignee: assignee,

@@ -165,6 +165,21 @@ final class ProjectDetailsView extends StatelessWidget {
                 Expanded(
                   child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
                 ),
+                IconButton(
+                  key: const Key('createTaskActionEmpty'),
+                  icon: const Icon(Icons.add_task_rounded),
+                  tooltip: 'Create task',
+                  onPressed: () async {
+                    final created = await context.push<bool>(
+                      AppRoutes.createTaskPath(projectId),
+                    );
+                    if (created == true && context.mounted) {
+                      context.read<ProjectDetailsBloc>().add(
+                            RefreshProjectDetails(projectId),
+                          );
+                    }
+                  },
+                ),
                 TextButton(
                   onPressed: () => _handleViewTasks(context),
                   child: const Text('View Tasks'),
@@ -222,6 +237,21 @@ final class ProjectDetailsView extends StatelessWidget {
                     Expanded(
                       child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
                     ),
+                    // IconButton(
+                    //   key: const Key('createTaskActionSuccess'),
+                    //   icon: const Icon(Icons.add_task_rounded),
+                    //   tooltip: 'Create task',
+                    //   onPressed: () async {
+                    //     final created = await context.push<bool>(
+                    //       AppRoutes.createTaskPath(projectId),
+                    //     );
+                    //     if (created == true && context.mounted) {
+                    //       context.read<ProjectDetailsBloc>().add(
+                    //             RefreshProjectDetails(projectId),
+                    //           );
+                    //     }
+                    //   },
+                    // ),
                     TextButton(
                       onPressed: () => _handleViewTasks(context),
                       child: const Text('View Tasks'),

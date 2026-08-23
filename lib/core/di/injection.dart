@@ -48,8 +48,11 @@ import 'package:taskflow/features/tasks/data/repositories/task_repository_impl.d
 import 'package:taskflow/features/tasks/domain/repositories/task_repository.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_project_tasks_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_task_details_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/create_task_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/get_assignees_usecase.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_list_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_create_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -358,6 +361,24 @@ Future<void> configureDependencies({Environment? environment}) async {
   if (!getIt.isRegistered<TaskDetailsBloc>()) {
     getIt.registerFactory<TaskDetailsBloc>(
           () => TaskDetailsBloc(getIt<GetTaskDetailsUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<CreateTaskUseCase>()) {
+    getIt.registerLazySingleton<CreateTaskUseCase>(
+          () => CreateTaskUseCase(getIt<TaskRepository>(), getIt<IdGenerator>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetAssigneesUseCase>()) {
+    getIt.registerLazySingleton<GetAssigneesUseCase>(
+          () => GetAssigneesUseCase(getIt<TaskRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TaskCreateBloc>()) {
+    getIt.registerFactory<TaskCreateBloc>(
+          () => TaskCreateBloc(getIt<CreateTaskUseCase>(), getIt<GetAssigneesUseCase>()),
     );
   }
 }

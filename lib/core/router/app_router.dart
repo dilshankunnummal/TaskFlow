@@ -14,6 +14,7 @@ import 'package:taskflow/features/projects/presentation/pages/project_details_pa
 import 'package:taskflow/features/projects/presentation/pages/projects_list_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_details_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_list_page.dart';
+import 'package:taskflow/features/tasks/presentation/pages/task_create_page.dart';
 
 final class AppRouter {
   const AppRouter._();
@@ -63,6 +64,14 @@ final class AppRouter {
         builder: (context, state) => TaskListPage(
           projectId: state.pathParameters['projectId']!,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.createTask,
+        name: 'createTask',
+        builder: (context, state) {
+          final projectId = state.uri.queryParameters['projectId']!;
+          return TaskCreatePage(projectId: projectId);
+        },
       ),
       GoRoute(
         path: AppRoutes.taskDetail,

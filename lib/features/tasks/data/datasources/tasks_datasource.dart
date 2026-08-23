@@ -11,6 +11,8 @@ abstract class TasksDataSource {
   Future<List<TaskModel>> getTasksByProject({required String projectId});
 
   Future<TaskDetailsModel> getTaskDetails({required String taskId});
+
+  Future<List<TaskAssigneeModel>> getAssignees();
 }
 
 @LazySingleton(as: TasksDataSource)
@@ -95,5 +97,17 @@ class MockTasksDataSource implements TasksDataSource {
       assignee: assigneeModel,
       comments: comments,
     );
+  }
+
+  @override
+  Future<List<TaskAssigneeModel>> getAssignees() async {
+    await _network.simulateDelay();
+
+    if (!_network.isOnline) {
+      throw const OfflineFailure(null);
+    }
+
+    final userRows = await _jsonDataSource.section('users');
+    return userRows.map(TaskAssigneeModel.fromJson).toList();
   }
 }

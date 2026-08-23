@@ -9,6 +9,7 @@ import 'package:taskflow/core/theme/app_radius.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
+import 'package:taskflow/core/widgets/glass/glass_container.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_list_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_list_event.dart';
@@ -51,15 +52,29 @@ class TaskListView extends StatelessWidget {
           builder: (context, constraints) {
             final columns = _columnsForWidth(constraints.maxWidth);
             return BlocBuilder<TaskListBloc, TaskListState>(
-              builder: (context, state) => _buildBody(context, state, columns, textTheme),
+              builder: (context, state) =>
+                  _buildBody(context, state, columns, textTheme),
             );
           },
         ),
       ),
+      floatingActionButton: _CreateTaskFab(
+        onPressed: () async {
+          final refreshed = await context.push<bool>(
+            AppRoutes.createTaskPath(projectId),
+          );
+
+          if (refreshed == true && context.mounted) {
+            context.read<TaskListBloc>().add(RefreshTasks(projectId));
+          }
+        },
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
-  Widget _buildBody(BuildContext context, TaskListState state, int columns, TextTheme textTheme) {
+  Widget _buildBody(BuildContext context, TaskListState state, int columns,
+      TextTheme textTheme) {
     if (state is TaskListInitial || state is TaskListLoading) {
       return _TaskListSkeleton(columns: columns);
     }
@@ -86,14 +101,13 @@ class TaskListView extends StatelessWidget {
     return _TaskListSkeleton(columns: columns);
   }
 
-  Widget _buildSuccessBody(BuildContext context, TaskListSuccess success, int columns) {
+  Widget _buildSuccessBody(
+      BuildContext context, TaskListSuccess success, int columns) {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<TaskListBloc>().add(RefreshTasks(projectId));
-        await context
-            .read<TaskListBloc>()
-            .stream
-            .firstWhere((s) => s is TaskListSuccess || s is TaskListEmpty || s is TaskListError);
+        await context.read<TaskListBloc>().stream.firstWhere((s) =>
+            s is TaskListSuccess || s is TaskListEmpty || s is TaskListError);
       },
       child: Column(
         children: [
@@ -103,7 +117,8 @@ class TaskListView extends StatelessWidget {
               builder: (context, gridConstraints) {
                 const spacing = AppSpacing.lg;
                 final totalSpacing = spacing * (columns - 1);
-                final itemWidth = (gridConstraints.maxWidth - totalSpacing) / columns;
+                final itemWidth =
+                    (gridConstraints.maxWidth - totalSpacing) / columns;
 
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -117,7 +132,8 @@ class TaskListView extends StatelessWidget {
                           width: itemWidth,
                           child: TaskCard(
                             task: task,
-                            onTap: () => context.push(AppRoutes.taskDetailPath(task.id)),
+                            onTap: () =>
+                                context.push(AppRoutes.taskDetailPath(task.id)),
                           ),
                         ),
                     ],
@@ -142,15 +158,18 @@ class _StaleBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       child: Row(
         children: [
-          Icon(Icons.cloud_off_rounded, size: 16, color: colorScheme.onSurfaceVariant),
+          Icon(Icons.cloud_off_rounded,
+              size: 16, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               AppStrings.offlineMessage,
-              style: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              style: textTheme.labelSmall
+                  ?.copyWith(color: colorScheme.onSurfaceVariant),
             ),
           ),
         ],
@@ -168,7 +187,8 @@ class _TaskCardSkeleton extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: AppRadius.cardRadius,
-        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.08)),
+        border:
+            Border.all(color: Theme.of(context).dividerColor.withOpacity(0.08)),
       ),
       padding: const EdgeInsets.all(AppSpacing.md),
       child: const Column(
@@ -178,7 +198,10 @@ class _TaskCardSkeleton extends StatelessWidget {
           SizedBox(height: AppSpacing.sm),
           Row(
             children: [
-              SkeletonBox(height: 20, width: 56, radius: BorderRadius.all(Radius.circular(999))),
+              SkeletonBox(
+                  height: 20,
+                  width: 56,
+                  radius: BorderRadius.all(Radius.circular(999))),
               SizedBox(width: AppSpacing.sm),
               SkeletonBox(height: 16, width: 90),
             ],
@@ -208,6 +231,39 @@ class _TaskListSkeleton extends StatelessWidget {
       ),
       itemCount: itemCount,
       itemBuilder: (context, index) => const _TaskCardSkeleton(),
+    );
+  }
+}
+
+class _CreateTaskFab extends StatelessWidget {
+  const _CreateTaskFab({
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GlassContainer(
+      borderRadius: AppRadius.pillRadius,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('createTaskFab'),
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Icon(
+              Icons.add_rounded,
+              color: colorScheme.primary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
