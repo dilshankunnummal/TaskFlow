@@ -28,17 +28,21 @@ final class DashboardPage extends StatelessWidget {
 final class _DashboardView extends StatelessWidget {
   const _DashboardView();
 
-  Future<void> _handleRefresh(BuildContext context) {
+  Future<void> _handleRefresh(BuildContext context) async {
     final bloc = context.read<DashboardBloc>();
-    final completion = bloc.stream.firstWhere((state) {
-      return switch (state) {
-        DashboardSuccess(:final isRefreshing) => !isRefreshing,
-        DashboardEmpty() || DashboardError() => true,
-        _ => false,
-      };
-    });
+    final future = bloc.stream.firstWhere(
+      (state) {
+        return switch (state) {
+          DashboardSuccess(:final isRefreshing) => !isRefreshing,
+          DashboardEmpty() || DashboardError() => true,
+          _ => false,
+        };
+      },
+      orElse: () => bloc.state,
+    );
     bloc.add(const RefreshDashboard());
-    return completion;
+    await future.timeout(const Duration(seconds: 3),
+        onTimeout: () => bloc.state);
   }
 
   @override
@@ -107,6 +111,7 @@ final class _DashboardContent extends StatelessWidget {
         const DashboardQuickActions(),
         const SizedBox(height: AppSpacing.xl),
         DashboardRecentActivity(items: data.recentActivity),
+        const SizedBox(height: AppSpacing.xxl),
       ],
     );
   }

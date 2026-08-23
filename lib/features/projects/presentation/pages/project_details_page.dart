@@ -37,11 +37,15 @@ final class ProjectDetailsView extends StatelessWidget {
 
   final String projectId;
 
-  Future<void> _handleRefresh(BuildContext context) {
+  Future<void> _handleRefresh(BuildContext context) async {
     final bloc = context.read<ProjectDetailsBloc>();
-    final completion = bloc.stream.firstWhere((state) => state is! ProjectDetailsLoading);
+    final future = bloc.stream.firstWhere(
+      (state) => state is! ProjectDetailsLoading,
+      orElse: () => bloc.state,
+    );
     bloc.add(RefreshProjectDetails(projectId));
-    return completion;
+    await future.timeout(const Duration(seconds: 3),
+        onTimeout: () => bloc.state);
   }
 
   Future<void> _handleEdit(BuildContext context, Project project) async {

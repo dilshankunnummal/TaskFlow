@@ -149,25 +149,29 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
                         AppSpacing.lg, AppSpacing.lg, AppSpacing.sm),
-                    child: Row(
-                      children: [
-                        Expanded(
-                            child: Text('Projects',
-                                style: textTheme.headlineSmall)),
-                        BlocBuilder<ProjectsBloc, ProjectsState>(
-                          builder: (context, state) {
-                            final content = _resolveContentState(state);
-                            if (content is! ProjectsSuccess)
-                              return const SizedBox.shrink();
-                            return ProjectsSortMenu(
-                              selected: content.sortOption,
-                              onSelected: (option) => context
-                                  .read<ProjectsBloc>()
-                                  .add(SortProjects(option)),
-                            );
-                          },
-                        ),
-                      ],
+                    child: SizedBox(
+                      height: 48,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                              child: Text('Projects',
+                                  style: textTheme.headlineSmall)),
+                          BlocBuilder<ProjectsBloc, ProjectsState>(
+                            builder: (context, state) {
+                              final content = _resolveContentState(state);
+                              if (content is! ProjectsSuccess)
+                                return const SizedBox.shrink();
+                              return ProjectsSortMenu(
+                                selected: content.sortOption,
+                                onSelected: (option) => context
+                                    .read<ProjectsBloc>()
+                                    .add(SortProjects(option)),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Padding(
@@ -241,9 +245,15 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       BuildContext context, ProjectsSuccess success, int columns) {
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<ProjectsBloc>().add(const RefreshProjects());
-        await context.read<ProjectsBloc>().stream.firstWhere((s) =>
-        s is ProjectsSuccess || s is ProjectsEmpty || s is ProjectsError);
+        final bloc = context.read<ProjectsBloc>();
+        final future = bloc.stream.firstWhere(
+          (s) =>
+              s is ProjectsSuccess || s is ProjectsEmpty || s is ProjectsError,
+          orElse: () => bloc.state,
+        );
+        bloc.add(const RefreshProjects());
+        await future.timeout(const Duration(seconds: 3),
+            onTimeout: () => bloc.state);
       },
       child: Column(
         children: [

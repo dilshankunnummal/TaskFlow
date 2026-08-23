@@ -34,6 +34,15 @@ abstract final class AppTheme {
       dialogTheme: _dialogTheme(AppColors.darkSurfaceElevated),
       bottomSheetTheme: _bottomSheetTheme(AppColors.darkSurfaceElevated),
       snackBarTheme: _snackBarTheme(AppColors.darkSurfaceElevated, AppColors.darkOnSurface),
+      popupMenuTheme: _popupMenuTheme(
+        surface: AppColors.darkSurfaceElevated,
+        border: AppColors.darkDivider,
+        textColor: AppColors.darkOnSurface,
+      ),
+      dropdownMenuTheme: _dropdownMenuTheme(
+        surface: AppColors.darkSurfaceElevated,
+        border: AppColors.darkDivider,
+      ),
     );
   }
 
@@ -66,6 +75,15 @@ abstract final class AppTheme {
       dialogTheme: _dialogTheme(AppColors.lightSurfaceElevated),
       bottomSheetTheme: _bottomSheetTheme(AppColors.lightSurfaceElevated),
       snackBarTheme: _snackBarTheme(AppColors.lightSurfaceElevated, AppColors.lightOnSurface),
+      popupMenuTheme: _popupMenuTheme(
+        surface: AppColors.lightSurfaceElevated,
+        border: AppColors.lightDivider,
+        textColor: AppColors.lightOnSurface,
+      ),
+      dropdownMenuTheme: _dropdownMenuTheme(
+        surface: AppColors.lightSurfaceElevated,
+        border: AppColors.lightDivider,
+      ),
     );
   }
 
@@ -191,6 +209,46 @@ abstract final class AppTheme {
       contentTextStyle: TextStyle(color: onSurface, fontSize: 14),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: AppRadius.inputRadius),
+    );
+  }
+
+  static PopupMenuThemeData _popupMenuTheme({
+    required Color surface,
+    required Color border,
+    required Color textColor,
+  }) {
+    return PopupMenuThemeData(
+      color: surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.cardRadius,
+        side: BorderSide(color: border, width: 1),
+      ),
+      textStyle: TextStyle(
+        color: textColor,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  static DropdownMenuThemeData _dropdownMenuTheme({
+    required Color surface,
+    required Color border,
+  }) {
+    return DropdownMenuThemeData(
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(surface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(4),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: AppRadius.cardRadius,
+            side: BorderSide(color: border, width: 1),
+          ),
+        ),
+      ),
     );
   }
 }

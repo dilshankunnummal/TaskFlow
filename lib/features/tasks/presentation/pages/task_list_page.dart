@@ -82,9 +82,17 @@ class TaskListView extends StatelessWidget {
     if (state is TaskListEmpty) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<TaskListBloc>().add(RefreshTasks(projectId));
-          await context.read<TaskListBloc>().stream.firstWhere((s) =>
-              s is TaskListSuccess || s is TaskListEmpty || s is TaskListError);
+          final bloc = context.read<TaskListBloc>();
+          final future = bloc.stream.firstWhere(
+            (s) =>
+                s is TaskListSuccess ||
+                s is TaskListEmpty ||
+                s is TaskListError,
+            orElse: () => bloc.state,
+          );
+          bloc.add(RefreshTasks(projectId));
+          await future.timeout(const Duration(seconds: 3),
+              onTimeout: () => bloc.state);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -119,9 +127,17 @@ class TaskListView extends StatelessWidget {
       BuildContext context, TaskListSuccess success, int columns) {
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<TaskListBloc>().add(RefreshTasks(projectId));
-        await context.read<TaskListBloc>().stream.firstWhere((s) =>
-            s is TaskListSuccess || s is TaskListEmpty || s is TaskListError);
+        final bloc = context.read<TaskListBloc>();
+        final future = bloc.stream.firstWhere(
+          (s) =>
+              s is TaskListSuccess ||
+              s is TaskListEmpty ||
+              s is TaskListError,
+          orElse: () => bloc.state,
+        );
+        bloc.add(RefreshTasks(projectId));
+        await future.timeout(const Duration(seconds: 3),
+            onTimeout: () => bloc.state);
       },
       child: Column(
         children: [

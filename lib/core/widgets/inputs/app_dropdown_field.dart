@@ -29,6 +29,9 @@ final class AppDropdownField<T> extends StatelessWidget {
         DropdownButtonFormField<T>(
           initialValue: value,
           isExpanded: true,
+          dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          elevation: 4,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
           items: [
             for (final item in items)

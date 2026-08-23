@@ -21,15 +21,19 @@ class ProjectsSearchBar extends StatelessWidget {
         valueListenable: controller,
         builder: (context, value, _) {
           if (value.text.isEmpty) return const SizedBox.shrink();
-          return IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              controller.clear();
-              onChanged('');
-            },
+          return SizedBox(
+            width: 24,
+            height: 24,
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded, size: 18),
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                controller.clear();
+                onChanged('');
+              },
+            ),
           );
         },
       ),

@@ -12,6 +12,7 @@ import 'package:taskflow/features/projects/presentation/pages/create_project_pag
 import 'package:taskflow/features/projects/presentation/pages/edit_project_page.dart';
 import 'package:taskflow/features/projects/presentation/pages/project_details_page.dart';
 import 'package:taskflow/features/projects/presentation/pages/projects_list_page.dart';
+import 'package:taskflow/features/profile/presentation/pages/profile_settings_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_details_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_edit_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_list_page.dart';
@@ -124,11 +125,7 @@ final class AppRouter {
             routes: [
               GoRoute(
                 path: AppRoutes.profile,
-                builder: (context, state) => const ComingSoonPage(
-                  title: 'Profile',
-                  message: 'Account details and settings are coming soon.',
-                  icon: Icons.person_outline_rounded,
-                ),
+                builder: (context, state) => const ProfileSettingsPage(),
               ),
             ],
           ),

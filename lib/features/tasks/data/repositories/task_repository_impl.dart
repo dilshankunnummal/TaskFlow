@@ -40,7 +40,7 @@ class TaskRepositoryImpl implements TaskRepository {
       _lastSuccessfulByProject[projectId] = tasks;
       return Right(tasks);
     } on OfflineFailure {
-      return _offlineFailureFor(projectId);
+      return await _offlineFailureFor(projectId);
     } on NotFoundFailure catch (failure) {
       return Left(failure);
     } on TimeoutFailure catch (failure) {
@@ -63,7 +63,7 @@ class TaskRepositoryImpl implements TaskRepository {
     try {
       return await _seedAndReturn(projectId, forceRefresh: true);
     } on OfflineFailure {
-      return _offlineFailureFor(projectId);
+      return await _offlineFailureFor(projectId);
     } on NotFoundFailure catch (failure) {
       return Left(failure);
     } on TimeoutFailure catch (failure) {
@@ -117,8 +117,15 @@ class TaskRepositoryImpl implements TaskRepository {
         .toList();
   }
 
-  Either<Failure, List<Task>> _offlineFailureFor(String projectId) {
-    final cached = _lastSuccessfulByProject[projectId];
+  Future<Either<Failure, List<Task>>> _offlineFailureFor(String projectId) async {
+    final cachedModels =
+        await _localDataSource.getCachedTasksForProject(projectId);
+    final cachedTasks = cachedModels
+        .where((model) => model.projectId == projectId)
+        .map((model) => model.toEntity())
+        .toList();
+    final cached = _lastSuccessfulByProject[projectId] ??
+        (cachedTasks.isNotEmpty ? cachedTasks : null);
     return Left(
       OfflineFailure(
         cached,

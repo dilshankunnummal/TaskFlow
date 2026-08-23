@@ -26,6 +26,9 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       {required String orgId}) async {
     try {
       final remoteModels = await _dataSource.getProjects(orgId: orgId);
+      for (final model in remoteModels) {
+        await _localDataSource.saveProject(model);
+      }
       final localModels = await _localDataSource.getProjectsForOrg(orgId);
       final deletedIds = await _localDataSource.getDeletedProjectIds();
       final activeRemote = remoteModels
@@ -36,12 +39,22 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       _lastSuccessfulByOrg[orgId] = projects;
       return Right(projects);
     } on OfflineFailure {
-      final cached = _lastSuccessfulByOrg[orgId];
-      return Left(OfflineFailure(
-          cached,
-          cached == null || cached.isEmpty
-              ? 'You are offline and no cached projects are available'
-              : 'You are offline. Showing last synced projects.'));
+      final localModels = await _localDataSource.getProjectsForOrg(orgId);
+      final deletedIds = await _localDataSource.getDeletedProjectIds();
+      final localProjects = localModels
+          .where((model) => !deletedIds.contains(model.id))
+          .map((model) => model.toEntity())
+          .toList();
+
+      final cached = _lastSuccessfulByOrg[orgId] ??
+          (localProjects.isNotEmpty ? localProjects : null);
+
+      if (cached != null && cached.isNotEmpty) {
+        return Left(OfflineFailure(
+            cached, 'You are offline. Showing last synced projects.'));
+      }
+      return const Left(OfflineFailure(
+          null, 'You are offline and no cached projects are available'));
     } on NotFoundFailure catch (failure) {
       return Left(failure);
     } on TimeoutFailure catch (failure) {
@@ -69,6 +82,9 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       ProjectModel? remoteModel;
       try {
         remoteModel = await _dataSource.getProjectById(projectId: projectId);
+        if (remoteModel != null) {
+          await _localDataSource.saveProject(remoteModel);
+        }
       } on NotFoundFailure {
         remoteModel = null;
       }
@@ -84,7 +100,9 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       _lastSuccessfulProjectById[projectId] = project;
       return Right(project);
     } on OfflineFailure {
-      final cached = _lastSuccessfulProjectById[projectId];
+      final localModel = await _localDataSource.getProject(projectId);
+      final cached =
+          _lastSuccessfulProjectById[projectId] ?? localModel?.toEntity();
       if (cached == null) {
         return const Left(OfflineFailure(
             null, 'You are offline and no cached project is available'));

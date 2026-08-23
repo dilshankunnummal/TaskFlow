@@ -60,6 +60,12 @@ import 'package:taskflow/features/tasks/presentation/bloc/task_list_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_create_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_edit_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_delete_bloc.dart';
+import 'package:taskflow/core/network/connectivity_manager.dart';
+import 'package:taskflow/features/profile/data/datasources/profile_datasource.dart';
+import 'package:taskflow/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:taskflow/features/profile/domain/repositories/profile_repository.dart';
+import 'package:taskflow/features/profile/domain/usecases/get_current_user_usecase.dart';
+import 'package:taskflow/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
@@ -442,6 +448,48 @@ Future<void> configureDependencies({Environment? environment}) async {
         getIt<GetOrganizationMembersUseCase>(),
         getIt<AssignTaskUseCase>(),
         getIt<UnassignTaskUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<ConnectivityManager>()) {
+    getIt.registerLazySingleton<ConnectivityManager>(
+      () => ConnectivityManager(),
+    );
+  }
+
+  if (!getIt.isRegistered<ProfileDataSource>()) {
+    getIt.registerLazySingleton<ProfileDataSource>(
+      () => MockProfileDataSource(
+        getIt<MockJsonDataSource>(),
+        getIt<CurrentSession>(),
+        getIt<MockNetwork>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<ProfileRepository>()) {
+    getIt.registerLazySingleton<ProfileRepository>(
+      () => ProfileRepositoryImpl(
+        getIt<ProfileDataSource>(),
+        getIt<AuthRepository>(),
+        getIt<ConnectivityManager>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetCurrentUserUseCase>()) {
+    getIt.registerLazySingleton<GetCurrentUserUseCase>(
+      () => GetCurrentUserUseCase(getIt<ProfileRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ProfileBloc>()) {
+    getIt.registerFactory<ProfileBloc>(
+      () => ProfileBloc(
+        getIt<GetCurrentUserUseCase>(),
+        getIt<ProfileRepository>(),
+        getIt<ConnectivityManager>(),
       ),
     );
   }
