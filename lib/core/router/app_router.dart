@@ -12,7 +12,7 @@ import 'package:taskflow/features/projects/presentation/pages/create_project_pag
 import 'package:taskflow/features/projects/presentation/pages/edit_project_page.dart';
 import 'package:taskflow/features/projects/presentation/pages/project_details_page.dart';
 import 'package:taskflow/features/projects/presentation/pages/projects_list_page.dart';
-import 'package:taskflow/features/tasks/presentation/pages/task_details_placeholder_page.dart';
+import 'package:taskflow/features/tasks/presentation/pages/task_details_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_list_page.dart';
 
 final class AppRouter {
@@ -67,7 +67,7 @@ final class AppRouter {
       GoRoute(
         path: AppRoutes.taskDetail,
         name: 'taskDetails',
-        builder: (context, state) => TaskDetailsPlaceholderPage(
+        builder: (context, state) => TaskDetailsPage(
           taskId: state.pathParameters['taskId']!,
         ),
       ),

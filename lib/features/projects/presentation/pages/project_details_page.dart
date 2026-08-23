@@ -6,6 +6,7 @@ import 'package:taskflow/core/di/injection.dart';
 import 'package:taskflow/core/router/app_routes.dart';
 import 'package:taskflow/core/theme/app_breakpoints.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
+import 'package:taskflow/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
@@ -54,38 +55,79 @@ final class ProjectDetailsView extends StatelessWidget {
     }
   }
 
+  Future<void> _handleDelete(BuildContext context, Project project) async {
+    await AppConfirmDialog.show(
+      context,
+      title: 'Delete project',
+      message:
+      'Delete "${project.name}"? This will permanently remove the project and its tasks. This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      onConfirm: () async {
+        if (context.mounted) {
+          context.read<ProjectDetailsBloc>().add(DeleteProjectDetails(project.id));
+        }
+      },
+    );
+  }
+
   void _handleViewTasks(BuildContext context) {
-    // context.push(AppRoutes.projectTasksPath(projectId));
+    context.push(AppRoutes.projectTasksPath(projectId));
+  }
+
+  void _handleStateListener(BuildContext context, ProjectDetailsState state) {
+    if (state is ProjectDetailsDeleteSuccess) {
+      context.pop(true);
+    } else if (state is ProjectDetailsDeleteFailure) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(state.message)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Project'),
-        actions: [
-          BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
-            builder: (context, state) {
-              final project = switch (state) {
-                ProjectDetailsSuccess(:final project) => project,
-                ProjectDetailsEmpty(:final project) => project,
-                _ => null,
-              };
-              if (project == null) {
-                return const SizedBox.shrink();
-              }
-              return IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Edit project',
-                onPressed: () => _handleEdit(context, project),
-              );
-            },
+    return BlocListener<ProjectDetailsBloc, ProjectDetailsState>(
+      listener: _handleStateListener,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Project'),
+          actions: [
+            BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
+              builder: (context, state) {
+                final project = switch (state) {
+                  ProjectDetailsSuccess(:final project) => project,
+                  ProjectDetailsEmpty(:final project) => project,
+                  _ => null,
+                };
+                if (project == null) {
+                  return const SizedBox.shrink();
+                }
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit project',
+                      onPressed: () => _handleEdit(context, project),
+                    ),
+                    IconButton(
+                      key: const Key('deleteProjectAction'),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      tooltip: 'Delete project',
+                      onPressed: () => _handleDelete(context, project),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
+            builder: (context, state) => _buildBody(context, state),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
-          builder: (context, state) => _buildBody(context, state),
         ),
       ),
     );

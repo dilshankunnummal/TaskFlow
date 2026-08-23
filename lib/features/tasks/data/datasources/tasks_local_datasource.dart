@@ -12,6 +12,8 @@ abstract class TasksLocalDataSource {
   Future<void> upsertTask(TaskModel task);
 
   Future<void> clearCacheForProject(String projectId);
+
+  Future<TaskModel?> getCachedTask(String taskId);
 }
 
 @LazySingleton(as: TasksLocalDataSource)
@@ -42,7 +44,8 @@ class HiveTasksLocalDataSource implements TasksLocalDataSource {
   }
 
   @override
-  Future<void> cacheTasksForProject(String projectId, List<TaskModel> tasks) async {
+  Future<void> cacheTasksForProject(
+      String projectId, List<TaskModel> tasks) async {
     for (final task in tasks) {
       await _box.put(_taskKey(task.id), task.toJson());
     }
@@ -74,5 +77,12 @@ class HiveTasksLocalDataSource implements TasksLocalDataSource {
     }).toList();
 
     await _box.deleteAll(keysToRemove);
+  }
+
+  @override
+  Future<TaskModel?> getCachedTask(String taskId) async {
+    final raw = _box.get(_taskKey(taskId));
+    if (raw is! Map) return null;
+    return TaskModel.fromJson(Map<String, dynamic>.from(raw));
   }
 }

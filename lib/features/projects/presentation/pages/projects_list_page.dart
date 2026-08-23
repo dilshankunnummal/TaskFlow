@@ -69,11 +69,19 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     final deleted = await context.push<bool>('/projects/${project.id}');
     if (deleted == true && context.mounted) {
       projectsBloc.add(const RefreshProjects());
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Project deleted')));
     }
   }
 
-  Future<void> _handleDeleteProject(BuildContext context, Project project) async {
-    final confirmed = await AppConfirmDialog.show(
+  Future<void> _handleDeleteProject(
+      BuildContext context,
+      Project project,
+      ) async {
+    final bloc = context.read<ProjectsBloc>();
+
+    await AppConfirmDialog.show(
       context,
       title: 'Delete project',
       message:
@@ -81,11 +89,15 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       isDestructive: true,
+      onConfirm: () async {
+        bloc.add(DeleteProject(project.id));
+
+        await bloc.stream.firstWhere(
+              (state) =>
+          state is ProjectDeleteSuccess || state is ProjectDeleteFailure,
+        );
+      },
     );
-
-    if (!confirmed || !context.mounted) return;
-
-    context.read<ProjectsBloc>().add(DeleteProject(project.id));
   }
 
   void _handleProjectsListener(BuildContext context, ProjectsState state) {
@@ -140,8 +152,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                     child: Row(
                       children: [
                         Expanded(
-                            child:
-                            Text('Projects', style: textTheme.headlineSmall)),
+                            child: Text('Projects',
+                                style: textTheme.headlineSmall)),
                         BlocBuilder<ProjectsBloc, ProjectsState>(
                           builder: (context, state) {
                             final content = _resolveContentState(state);
@@ -163,8 +175,9 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                     const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: ProjectsSearchBar(
                       controller: _searchController,
-                      onChanged: (query) =>
-                          context.read<ProjectsBloc>().add(SearchProjects(query)),
+                      onChanged: (query) => context
+                          .read<ProjectsBloc>()
+                          .add(SearchProjects(query)),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -224,14 +237,13 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     return ProjectsListSkeleton(columns: columns);
   }
 
-  Widget _buildSuccessBody(BuildContext context, ProjectsSuccess success, int columns) {
+  Widget _buildSuccessBody(
+      BuildContext context, ProjectsSuccess success, int columns) {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<ProjectsBloc>().add(const RefreshProjects());
-        await context
-            .read<ProjectsBloc>()
-            .stream
-            .firstWhere((s) => s is ProjectsSuccess || s is ProjectsEmpty || s is ProjectsError);
+        await context.read<ProjectsBloc>().stream.firstWhere((s) =>
+        s is ProjectsSuccess || s is ProjectsEmpty || s is ProjectsError);
       },
       child: Column(
         children: [
@@ -270,7 +282,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                           width: itemWidth,
                           child: ProjectCard(
                             project: project,
-                            onTap: () => _handleOpenProject(context, project),
+                            onTap: () =>
+                                _handleOpenProject(context, project),
                             onDeleteRequested: () =>
                                 _handleDeleteProject(context, project),
                             isDeleting: _deletingProjectId == project.id,

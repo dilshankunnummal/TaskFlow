@@ -9,7 +9,7 @@ abstract final class AppRoutes {
   static const String projectDetail = '/projects/:projectId';
   static const String editProject = '/projects/:projectId/edit';
   static const String tasks = '/tasks';
-  static const String projectTasks = '/projectTasks';
+  static const String projectTasks = '/projects/:projectId/tasks';
   static const String taskDetail = '/tasks/:taskId';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
@@ -17,6 +17,8 @@ abstract final class AppRoutes {
   static String projectDetailPath(String projectId) => '/projects/$projectId';
 
   static String editProjectPath(String projectId) => '/projects/$projectId/edit';
+
+  static String projectTasksPath(String projectId) => '/projects/$projectId/tasks';
 
   static String taskDetailPath(String taskId) => '/tasks/$taskId';
 }
