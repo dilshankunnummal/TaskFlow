@@ -20,13 +20,20 @@ final class AppCard extends StatelessWidget {
     final cardTheme = theme.cardTheme;
 
     return Material(
-      color: cardTheme.color,
-      shape: cardTheme.shape,
+      color: cardTheme.color ?? theme.colorScheme.surface,
+      elevation: cardTheme.elevation ?? 0,
+      shape: cardTheme.shape ??
+          RoundedRectangleBorder(
+            borderRadius: AppRadius.cardRadius,
+          ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppRadius.cardRadius,
-        child: Padding(padding: padding, child: child),
+        child: Padding(
+          padding: padding,
+          child: child,
+        ),
       ),
     );
   }

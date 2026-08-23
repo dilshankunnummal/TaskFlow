@@ -45,6 +45,12 @@ final class PermissionFailure extends Failure {
   const PermissionFailure([super.message = 'You do not have permission to perform this action.']);
 }
 
+class OfflineFailure extends Failure {
+  final dynamic cachedData;
+
+  const OfflineFailure(this.cachedData, [super.message = 'You are offline']);
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'An unexpected error occurred.']);
 }

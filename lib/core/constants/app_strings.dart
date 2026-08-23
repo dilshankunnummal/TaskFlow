@@ -33,6 +33,6 @@ abstract final class AppStrings {
   static const String registerButtonLabel = 'Register';
   static const String registerLoginPromptLabel =
       'Already have an account? Log in';
-  static const String registerSuccessMessage =
-      'Account created. Please log in.';
+  static const String registerSuccessMessage = 'Account created. Please log in.';
+  static const String offlineMessage = 'You are offline. Showing data that may be stale.';
 }
