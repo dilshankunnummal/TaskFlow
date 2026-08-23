@@ -100,3 +100,20 @@ class ProjectDetailsError extends ProjectDetailsState {
   @override
   List<Object?> get props => [message];
 }
+
+class ProjectDetailsDeleteInProgress extends ProjectDetailsState {
+  const ProjectDetailsDeleteInProgress();
+}
+
+class ProjectDetailsDeleteSuccess extends ProjectDetailsState {
+  const ProjectDetailsDeleteSuccess();
+}
+
+class ProjectDetailsDeleteFailure extends ProjectDetailsState {
+  final String message;
+
+  const ProjectDetailsDeleteFailure(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

@@ -51,28 +51,28 @@ final class _DashboardView extends StatelessWidget {
             return switch (state) {
               DashboardInitial() || DashboardLoading() => const AppSkeletonLoader(),
               DashboardError(:final message) => AppErrorState(
-                  message: message,
-                  onRetry: () => context.read<DashboardBloc>().add(const LoadDashboard()),
-                ),
+                message: message,
+                onRetry: () => context.read<DashboardBloc>().add(const LoadDashboard()),
+              ),
               DashboardSuccess(:final data, :final isRefreshing) => Stack(
-                  children: [
-                    RefreshIndicator(
-                      onRefresh: () => _handleRefresh(context),
-                      child: _DashboardContent(data: data, showSummary: true),
+                children: [
+                  RefreshIndicator(
+                    onRefresh: () => _handleRefresh(context),
+                    child: _DashboardContent(data: data, showSummary: true),
+                  ),
+                  if (isRefreshing)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(minHeight: 2),
                     ),
-                    if (isRefreshing)
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: LinearProgressIndicator(minHeight: 2),
-                      ),
-                  ],
-                ),
+                ],
+              ),
               DashboardEmpty(:final data) => RefreshIndicator(
-                  onRefresh: () => _handleRefresh(context),
-                  child: _DashboardContent(data: data, showSummary: false),
-                ),
+                onRefresh: () => _handleRefresh(context),
+                child: _DashboardContent(data: data, showSummary: false),
+              ),
             };
           },
         ),

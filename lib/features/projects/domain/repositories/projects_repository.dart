@@ -9,4 +9,10 @@ abstract class ProjectsRepository {
   Future<Either<Failure, Project>> getProjectById({required String projectId});
 
   Future<Either<Failure, List<ProjectTask>>> getProjectTasks({required String projectId});
+
+  Future<Either<Failure, Project>> createProject({required Project project});
+
+  Future<Either<Failure, Project>> updateProject({required Project project});
+
+  Future<Either<Failure, Unit>> deleteProject({required String projectId});
 }

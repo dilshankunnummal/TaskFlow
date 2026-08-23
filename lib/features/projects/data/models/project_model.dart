@@ -43,6 +43,18 @@ class ProjectModel {
     };
   }
 
+  factory ProjectModel.fromEntity(Project project) {
+    return ProjectModel(
+      id: project.id,
+      orgId: project.orgId,
+      name: project.name,
+      description: project.description,
+      status: _statusToString(project.status),
+      taskCount: project.taskCount,
+      createdAt: project.createdAt.toIso8601String(),
+    );
+  }
+
   Project toEntity() {
     return Project(
       id: id,
@@ -67,6 +79,19 @@ class ProjectModel {
         return ProjectStatus.archived;
       default:
         return ProjectStatus.active;
+    }
+  }
+
+  static String _statusToString(ProjectStatus status) {
+    switch (status) {
+      case ProjectStatus.active:
+        return 'active';
+      case ProjectStatus.planning:
+        return 'planning';
+      case ProjectStatus.onHold:
+        return 'on_hold';
+      case ProjectStatus.archived:
+        return 'archived';
     }
   }
 }

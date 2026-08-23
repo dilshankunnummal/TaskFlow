@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/features/projects/domain/entities/project_details.dart';
+import 'package:taskflow/features/projects/domain/usecases/delete_project_usecase.dart';
 import 'package:taskflow/features/projects/domain/usecases/get_project_details_usecase.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_event.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_state.dart';
@@ -9,12 +10,15 @@ import 'package:taskflow/features/projects/presentation/bloc/project_details_sta
 @injectable
 class ProjectDetailsBloc extends Bloc<ProjectDetailsEvent, ProjectDetailsState> {
   final GetProjectDetailsUseCase _getProjectDetails;
+  final DeleteProjectUseCase _deleteProject;
 
   ProjectDetails? _lastSuccessfulDetails;
 
-  ProjectDetailsBloc(this._getProjectDetails) : super(const ProjectDetailsInitial()) {
+  ProjectDetailsBloc(this._getProjectDetails, this._deleteProject)
+      : super(const ProjectDetailsInitial()) {
     on<LoadProjectDetails>(_onLoadProjectDetails);
     on<RefreshProjectDetails>(_onRefreshProjectDetails);
+    on<DeleteProjectDetails>(_onDeleteProjectDetails);
   }
 
   Future<void> _onLoadProjectDetails(LoadProjectDetails event, Emitter<ProjectDetailsState> emit) async {
@@ -24,6 +28,17 @@ class ProjectDetailsBloc extends Bloc<ProjectDetailsEvent, ProjectDetailsState> 
 
   Future<void> _onRefreshProjectDetails(RefreshProjectDetails event, Emitter<ProjectDetailsState> emit) async {
     await _fetchAndEmit(event.projectId, emit);
+  }
+
+  Future<void> _onDeleteProjectDetails(DeleteProjectDetails event, Emitter<ProjectDetailsState> emit) async {
+    emit(const ProjectDetailsDeleteInProgress());
+
+    final result = await _deleteProject(projectId: event.projectId);
+
+    result.fold(
+      (failure) => emit(ProjectDetailsDeleteFailure(failure.message)),
+      (_) => emit(const ProjectDetailsDeleteSuccess()),
+    );
   }
 
   Future<void> _fetchAndEmit(String projectId, Emitter<ProjectDetailsState> emit) async {

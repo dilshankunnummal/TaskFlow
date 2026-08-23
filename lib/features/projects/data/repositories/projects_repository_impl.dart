@@ -2,6 +2,8 @@ import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:taskflow/core/utils/logger.dart';
 import 'package:taskflow/features/projects/data/datasources/projects_datasource.dart';
+import 'package:taskflow/features/projects/data/datasources/projects_local_datasource.dart';
+import 'package:taskflow/features/projects/data/models/project_model.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
 import 'package:taskflow/features/projects/domain/entities/project_task.dart';
 import 'package:taskflow/features/projects/domain/repositories/projects_repository.dart';
@@ -11,18 +13,21 @@ import '../../../../core/error/failures.dart';
 @LazySingleton(as: ProjectsRepository)
 class ProjectsRepositoryImpl implements ProjectsRepository {
   final ProjectsDataSource _dataSource;
+  final ProjectsLocalDataSource _localDataSource;
 
   final Map<String, List<Project>> _lastSuccessfulByOrg = {};
   final Map<String, Project> _lastSuccessfulProjectById = {};
   final Map<String, List<ProjectTask>> _lastSuccessfulTasksByProjectId = {};
 
-  ProjectsRepositoryImpl(this._dataSource);
+  ProjectsRepositoryImpl(this._dataSource, this._localDataSource);
 
   @override
   Future<Either<Failure, List<Project>>> getProjects({required String orgId}) async {
     try {
-      final models = await _dataSource.getProjects(orgId: orgId);
-      final projects = models.map((model) => model.toEntity()).toList();
+      final remoteModels = await _dataSource.getProjects(orgId: orgId);
+      final localModels = await _localDataSource.getProjectsForOrg(orgId);
+      final mergedModels = _mergeProjectModels(remoteModels, localModels);
+      final projects = mergedModels.map((model) => model.toEntity()).toList();
       _lastSuccessfulByOrg[orgId] = projects;
       return Right(projects);
     } on OfflineFailure {
@@ -45,8 +50,21 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
   @override
   Future<Either<Failure, Project>> getProjectById({required String projectId}) async {
     try {
-      final model = await _dataSource.getProjectById(projectId: projectId);
-      final project = model.toEntity();
+      ProjectModel? remoteModel;
+      try {
+        remoteModel = await _dataSource.getProjectById(projectId: projectId);
+      } on NotFoundFailure {
+        remoteModel = null;
+      }
+
+      final localModel = await _localDataSource.getProject(projectId);
+      final resolvedModel = localModel ?? remoteModel;
+
+      if (resolvedModel == null) {
+        return const Left(NotFoundFailure());
+      }
+
+      final project = resolvedModel.toEntity();
       _lastSuccessfulProjectById[projectId] = project;
       return Right(project);
     } on OfflineFailure {
@@ -89,5 +107,74 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       AppLogger.error('ProjectsRepositoryImpl.getProjectTasks failed for projectId=$projectId', error: error, stackTrace: stackTrace);
       return const Left(UnknownFailure());
     }
+  }
+
+  @override
+  Future<Either<Failure, Project>> createProject({required Project project}) async {
+    try {
+      await _localDataSource.saveProject(ProjectModel.fromEntity(project));
+
+      _lastSuccessfulProjectById[project.id] = project;
+      final cachedList = _lastSuccessfulByOrg[project.orgId];
+      if (cachedList != null) {
+        _lastSuccessfulByOrg[project.orgId] = [...cachedList, project];
+      }
+
+      return Right(project);
+    } catch (error, stackTrace) {
+      AppLogger.error('ProjectsRepositoryImpl.createProject failed for projectId=${project.id}', error: error, stackTrace: stackTrace);
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Project>> updateProject({required Project project}) async {
+    try {
+      await _localDataSource.saveProject(ProjectModel.fromEntity(project));
+
+      _lastSuccessfulProjectById[project.id] = project;
+      final cachedList = _lastSuccessfulByOrg[project.orgId];
+      if (cachedList != null) {
+        _lastSuccessfulByOrg[project.orgId] = [
+          for (final existing in cachedList)
+            if (existing.id == project.id) project else existing,
+        ];
+      }
+
+      return Right(project);
+    } catch (error, stackTrace) {
+      AppLogger.error('ProjectsRepositoryImpl.updateProject failed for projectId=${project.id}', error: error, stackTrace: stackTrace);
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteProject({required String projectId}) async {
+    try {
+      await _localDataSource.deleteProject(projectId);
+
+      _lastSuccessfulProjectById.remove(projectId);
+      _lastSuccessfulTasksByProjectId.remove(projectId);
+      _lastSuccessfulByOrg.updateAll(
+            (orgId, projects) => projects.where((project) => project.id != projectId).toList(),
+      );
+
+      return const Right(unit);
+    } on NotFoundFailure catch (failure) {
+      return Left(failure);
+    } on ValidationFailure catch (failure) {
+      return Left(failure);
+    } catch (error, stackTrace) {
+      AppLogger.error('ProjectsRepositoryImpl.deleteProject failed for projectId=$projectId', error: error, stackTrace: stackTrace);
+      return const Left(UnknownFailure());
+    }
+  }
+
+  List<ProjectModel> _mergeProjectModels(List<ProjectModel> remote, List<ProjectModel> local) {
+    final byId = {for (final model in remote) model.id: model};
+    for (final model in local) {
+      byId[model.id] = model;
+    }
+    return byId.values.toList();
   }
 }

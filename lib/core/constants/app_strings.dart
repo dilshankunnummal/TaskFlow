@@ -35,4 +35,19 @@ abstract final class AppStrings {
       'Already have an account? Log in';
   static const String registerSuccessMessage = 'Account created. Please log in.';
   static const String offlineMessage = 'You are offline. Showing data that may be stale.';
+
+  static const String createProjectTitle = 'New Project';
+  static const String createProjectHeadline = 'Create a new project';
+  static const String createProjectSubtitle =
+      'Give your project a name and a short description to get started.';
+  static const String createProjectNameLabel = 'Project name';
+  static const String createProjectNameHint = 'e.g. Marketing Website Redesign';
+  static const String createProjectDescriptionLabel = 'Description';
+  static const String createProjectDescriptionHint = 'What is this project about?';
+  static const String createProjectSubmitLabel = 'Create project';
+
+  static const String editProjectTitle = 'Edit Project';
+  static const String editProjectHeadline = 'Edit project details';
+  static const String editProjectSubtitle = 'Update the name and description for this project.';
+  static const String editProjectSubmitLabel = 'Save changes';
 }

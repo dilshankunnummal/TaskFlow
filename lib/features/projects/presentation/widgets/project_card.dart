@@ -9,11 +9,15 @@ import 'package:taskflow/features/projects/domain/entities/project.dart';
 class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback onTap;
+  final VoidCallback? onDeleteRequested;
+  final bool isDeleting;
 
   const ProjectCard({
     super.key,
     required this.project,
     required this.onTap,
+    this.onDeleteRequested,
+    this.isDeleting = false,
   });
 
   String _statusLabel(ProjectStatus status) {
@@ -52,60 +56,135 @@ class ProjectCard extends StatelessWidget {
       _statusKey(project.status),
     );
 
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Stack(
+      children: [
+        AppCard(
+          onTap: isDeleting ? null : onTap,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Opacity(
+            opacity: isDeleting ? 0.5 : 1,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  project.name,
-                  style: textTheme.titleSmall,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        style: textTheme.titleSmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    _StatusBadge(
+                      label: _statusLabel(project.status),
+                      color: statusColor,
+                    ),
+                    if (onDeleteRequested != null) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      _ProjectCardMenu(
+                        enabled: !isDeleting,
+                        onDelete: onDeleteRequested!,
+                      ),
+                    ],
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.xs),
+
+                Text(
+                  project.description,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              _StatusBadge(
-                label: _statusLabel(project.status),
-                color: statusColor,
-              ),
-            ],
-          ),
 
-          const SizedBox(height: AppSpacing.xs),
+                const SizedBox(height: AppSpacing.sm),
 
-          Text(
-            project.description,
-            style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+                Wrap(
+                  spacing: AppSpacing.md,
+                  runSpacing: AppSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _InfoItem(
+                      icon: Icons.checklist_rounded,
+                      text: '${project.taskCount} tasks',
+                    ),
+                    _InfoItem(
+                      icon: Icons.schedule_rounded,
+                      text: DateFormat.yMMMd().format(project.createdAt),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-
-          const SizedBox(height: AppSpacing.sm),
-
-          Wrap(
-            spacing: AppSpacing.md,
-            runSpacing: AppSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _InfoItem(
-                icon: Icons.checklist_rounded,
-                text: '${project.taskCount} tasks',
+        ),
+        if (isDeleting)
+          Positioned.fill(
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colorScheme.error,
+                ),
               ),
-              _InfoItem(
-                icon: Icons.schedule_rounded,
-                text: DateFormat.yMMMd().format(project.createdAt),
-              ),
-            ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ProjectCardMenu extends StatelessWidget {
+  const _ProjectCardMenu({
+    required this.enabled,
+    required this.onDelete,
+  });
+
+  final bool enabled;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 28,
+      height: 28,
+      child: PopupMenuButton<String>(
+        enabled: enabled,
+        padding: EdgeInsets.zero,
+        tooltip: 'Project options',
+        icon: Icon(
+          Icons.more_vert_rounded,
+          size: 18,
+          color: colorScheme.onSurfaceVariant,
+        ),
+        onSelected: (value) {
+          if (value == 'delete') {
+            onDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.delete_outline_rounded, size: 18, color: colorScheme.error),
+                const SizedBox(width: AppSpacing.sm),
+                Text('Delete', style: TextStyle(color: colorScheme.error)),
+              ],
+            ),
           ),
         ],
       ),

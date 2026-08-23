@@ -33,3 +33,12 @@ class SortProjects extends ProjectsEvent {
   @override
   List<Object?> get props => [option];
 }
+
+class DeleteProject extends ProjectsEvent {
+  final String projectId;
+
+  const DeleteProject(this.projectId);
+
+  @override
+  List<Object?> get props => [projectId];
+}

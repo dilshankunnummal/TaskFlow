@@ -5,6 +5,7 @@ import 'package:taskflow/core/constants/storage_keys.dart';
 abstract class CurrentSession {
   Future<String?> get currentOrgId;
   Future<String?> get currentUserId;
+  Future<String?> get currentUserRole;
 }
 
 @LazySingleton(as: CurrentSession)
@@ -20,4 +21,8 @@ class CurrentSessionImpl implements CurrentSession {
   @override
   Future<String?> get currentUserId =>
       _secureStorage.read(key: SecureStorageKeys.currentUserId);
+
+  @override
+  Future<String?> get currentUserRole =>
+      _secureStorage.read(key: SecureStorageKeys.currentUserRole);
 }

@@ -65,3 +65,31 @@ class ProjectsError extends ProjectsState {
   @override
   List<Object?> get props => [message];
 }
+
+class ProjectDeleteInProgress extends ProjectsState {
+  final String projectId;
+
+  const ProjectDeleteInProgress(this.projectId);
+
+  @override
+  List<Object?> get props => [projectId];
+}
+
+class ProjectDeleteSuccess extends ProjectsState {
+  final String projectId;
+
+  const ProjectDeleteSuccess(this.projectId);
+
+  @override
+  List<Object?> get props => [projectId];
+}
+
+class ProjectDeleteFailure extends ProjectsState {
+  final String projectId;
+  final String message;
+
+  const ProjectDeleteFailure(this.projectId, this.message);
+
+  @override
+  List<Object?> get props => [projectId, message];
+}

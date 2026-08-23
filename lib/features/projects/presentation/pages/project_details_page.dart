@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:taskflow/core/constants/app_strings.dart';
 import 'package:taskflow/core/di/injection.dart';
+import 'package:taskflow/core/router/app_routes.dart';
 import 'package:taskflow/core/theme/app_breakpoints.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
+import 'package:taskflow/features/projects/domain/entities/project.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_bloc.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_event.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_state.dart';
@@ -40,10 +43,46 @@ final class ProjectDetailsView extends StatelessWidget {
     return completion;
   }
 
+  Future<void> _handleEdit(BuildContext context, Project project) async {
+    final detailsBloc = context.read<ProjectDetailsBloc>();
+    final updated = await context.push<bool>(
+      AppRoutes.editProjectPath(project.id),
+      extra: project,
+    );
+    if (updated == true) {
+      detailsBloc.add(RefreshProjectDetails(project.id));
+    }
+  }
+
+  void _handleViewTasks(BuildContext context) {
+    // context.push(AppRoutes.projectTasksPath(projectId));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Project')),
+      appBar: AppBar(
+        title: const Text('Project'),
+        actions: [
+          BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
+            builder: (context, state) {
+              final project = switch (state) {
+                ProjectDetailsSuccess(:final project) => project,
+                ProjectDetailsEmpty(:final project) => project,
+                _ => null,
+              };
+              if (project == null) {
+                return const SizedBox.shrink();
+              }
+              return IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit project',
+                onPressed: () => _handleEdit(context, project),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
           builder: (context, state) => _buildBody(context, state),
@@ -79,12 +118,28 @@ final class ProjectDetailsView extends StatelessWidget {
             if (state.isStale) const _StaleBanner(),
             ProjectHeaderCard(project: state.project),
             const SizedBox(height: AppSpacing.xxl),
-            const SizedBox(
-              height: 320,
-              child: EmptyStateWidget(
-                icon: Icons.checklist_rtl_rounded,
-                title: 'No tasks yet',
-                message: 'Tasks added to this project will show up here.',
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
+                ),
+                TextButton(
+                  onPressed: () => _handleViewTasks(context),
+                  child: const Text('View Tasks'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            InkWell(
+              onTap: () => _handleViewTasks(context),
+              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              child: const SizedBox(
+                height: 320,
+                child: EmptyStateWidget(
+                  icon: Icons.checklist_rtl_rounded,
+                  title: 'No tasks yet',
+                  message: 'Tasks added to this project will show up here.',
+                ),
               ),
             ),
           ],
@@ -102,7 +157,7 @@ final class ProjectDetailsView extends StatelessWidget {
           final columns = isPhone ? 1 : 2;
           const spacing = AppSpacing.lg;
           final itemWidth =
-              columns == 1 ? constraints.maxWidth : (constraints.maxWidth - spacing) / columns;
+          columns == 1 ? constraints.maxWidth : (constraints.maxWidth - spacing) / columns;
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -120,7 +175,17 @@ final class ProjectDetailsView extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xxl),
                 ProjectStatusSummary(taskSummary: success.taskSummary),
                 const SizedBox(height: AppSpacing.xxl),
-                Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
+                    ),
+                    TextButton(
+                      onPressed: () => _handleViewTasks(context),
+                      child: const Text('View Tasks'),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Wrap(
                   spacing: spacing,

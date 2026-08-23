@@ -6,6 +6,7 @@ import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
 import 'package:taskflow/features/projects/domain/entities/project_details.dart';
 import 'package:taskflow/features/projects/domain/entities/project_task.dart';
+import 'package:taskflow/features/projects/domain/usecases/delete_project_usecase.dart';
 import 'package:taskflow/features/projects/domain/usecases/get_project_details_usecase.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_bloc.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_event.dart';
@@ -13,8 +14,11 @@ import 'package:taskflow/features/projects/presentation/bloc/project_details_sta
 
 class MockGetProjectDetailsUseCase extends Mock implements GetProjectDetailsUseCase {}
 
+class MockDeleteProjectUseCase extends Mock implements DeleteProjectUseCase {}
+
 void main() {
   late MockGetProjectDetailsUseCase useCase;
+  late MockDeleteProjectUseCase deleteUseCase;
 
   const projectId = 'proj_1001';
 
@@ -60,9 +64,10 @@ void main() {
 
   setUp(() {
     useCase = MockGetProjectDetailsUseCase();
+    deleteUseCase = MockDeleteProjectUseCase();
   });
 
-  ProjectDetailsBloc buildBloc() => ProjectDetailsBloc(useCase);
+  ProjectDetailsBloc buildBloc() => ProjectDetailsBloc(useCase, deleteUseCase);
 
   group('ProjectDetailsBloc', () {
     test('initial state is ProjectDetailsInitial', () {
@@ -177,6 +182,63 @@ void main() {
           taskSummary: populatedSummary,
           isStale: true,
         ),
+      ],
+    );
+
+    blocTest<ProjectDetailsBloc, ProjectDetailsState>(
+      'emits [DeleteInProgress, DeleteSuccess] when delete succeeds',
+      build: () {
+        when(() => deleteUseCase(projectId: projectId))
+            .thenAnswer((_) async => const Right(unit));
+        return buildBloc();
+      },
+      seed: () => ProjectDetailsSuccess(
+        project: project,
+        tasks: tasks,
+        taskSummary: populatedSummary,
+      ),
+      act: (bloc) => bloc.add(const DeleteProjectDetails(projectId)),
+      expect: () => [
+        const ProjectDetailsDeleteInProgress(),
+        const ProjectDetailsDeleteSuccess(),
+      ],
+    );
+
+    blocTest<ProjectDetailsBloc, ProjectDetailsState>(
+      'emits [DeleteInProgress, DeleteFailure] when the member lacks permission',
+      build: () {
+        when(() => deleteUseCase(projectId: projectId))
+            .thenAnswer((_) async => const Left(PermissionFailure()));
+        return buildBloc();
+      },
+      seed: () => ProjectDetailsSuccess(
+        project: project,
+        tasks: tasks,
+        taskSummary: populatedSummary,
+      ),
+      act: (bloc) => bloc.add(const DeleteProjectDetails(projectId)),
+      expect: () => [
+        const ProjectDetailsDeleteInProgress(),
+        const ProjectDetailsDeleteFailure('You do not have permission to perform this action.'),
+      ],
+    );
+
+    blocTest<ProjectDetailsBloc, ProjectDetailsState>(
+      'emits [DeleteInProgress, DeleteFailure] when delete fails for another reason',
+      build: () {
+        when(() => deleteUseCase(projectId: projectId))
+            .thenAnswer((_) async => const Left(NotFoundFailure()));
+        return buildBloc();
+      },
+      seed: () => ProjectDetailsSuccess(
+        project: project,
+        tasks: tasks,
+        taskSummary: populatedSummary,
+      ),
+      act: (bloc) => bloc.add(const DeleteProjectDetails(projectId)),
+      expect: () => [
+        const ProjectDetailsDeleteInProgress(),
+        const ProjectDetailsDeleteFailure('The requested resource was not found.'),
       ],
     );
   });

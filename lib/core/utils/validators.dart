@@ -73,4 +73,24 @@ abstract final class Validators {
     }
     return null;
   }
+
+  static String? projectName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Project name is required.';
+    }
+    if (value.trim().length < 3) {
+      return 'Project name must be at least 3 characters.';
+    }
+    if (value.trim().length > 120) {
+      return 'Project name must be 120 characters or fewer.';
+    }
+    return null;
+  }
+
+  static String? projectDescription(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Project description is required.';
+    }
+    return null;
+  }
 }

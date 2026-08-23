@@ -24,3 +24,12 @@ class RefreshProjectDetails extends ProjectDetailsEvent {
   @override
   List<Object?> get props => [projectId];
 }
+
+class DeleteProjectDetails extends ProjectDetailsEvent {
+  final String projectId;
+
+  const DeleteProjectDetails(this.projectId);
+
+  @override
+  List<Object?> get props => [projectId];
+}

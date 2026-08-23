@@ -5,13 +5,18 @@ abstract final class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String home = dashboard;
   static const String projects = '/projects';
+  static const String createProject = '/projects/create';
   static const String projectDetail = '/projects/:projectId';
+  static const String editProject = '/projects/:projectId/edit';
   static const String tasks = '/tasks';
+  static const String projectTasks = '/projectTasks';
   static const String taskDetail = '/tasks/:taskId';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
 
   static String projectDetailPath(String projectId) => '/projects/$projectId';
+
+  static String editProjectPath(String projectId) => '/projects/$projectId/edit';
 
   static String taskDetailPath(String taskId) => '/tasks/$taskId';
 }

@@ -3,6 +3,7 @@ import 'package:injectable/injectable.dart';
 import 'package:taskflow/core/auth/current_session.dart';
 import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
+import 'package:taskflow/features/projects/domain/usecases/delete_project_usecase.dart';
 import 'package:taskflow/features/projects/domain/usecases/get_projects.dart';
 import 'package:taskflow/features/projects/presentation/bloc/projects_event.dart';
 import 'package:taskflow/features/projects/presentation/bloc/projects_state.dart';
@@ -10,13 +11,16 @@ import 'package:taskflow/features/projects/presentation/bloc/projects_state.dart
 @injectable
 class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
   final GetProjects _getProjects;
+  final DeleteProjectUseCase _deleteProject;
   final CurrentSession _currentSession;
 
-  ProjectsBloc(this._getProjects, this._currentSession) : super(const ProjectsInitial()) {
+  ProjectsBloc(this._getProjects, this._deleteProject, this._currentSession)
+      : super(const ProjectsInitial()) {
     on<LoadProjects>(_onLoadProjects);
     on<RefreshProjects>(_onRefreshProjects);
     on<SearchProjects>(_onSearchProjects);
     on<SortProjects>(_onSortProjects);
+    on<DeleteProject>(_onDeleteProject);
   }
 
   Future<void> _onLoadProjects(LoadProjects event, Emitter<ProjectsState> emit) async {
@@ -25,14 +29,42 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
   }
 
   Future<void> _onRefreshProjects(RefreshProjects event, Emitter<ProjectsState> emit) async {
-    await _fetchAndEmit(emit, preserveQueryAndSort: true);
+    final current = _currentQueryAndSort();
+    await _fetchAndEmit(emit, query: current.$1, sortOption: current.$2);
   }
 
-  Future<void> _fetchAndEmit(Emitter<ProjectsState> emit, {bool preserveQueryAndSort = false}) async {
-    final previous = state;
-    final query = preserveQueryAndSort && previous is ProjectsSuccess ? previous.query : '';
-    final sortOption = preserveQueryAndSort && previous is ProjectsSuccess ? previous.sortOption : ProjectSortOption.newest;
+  Future<void> _onDeleteProject(DeleteProject event, Emitter<ProjectsState> emit) async {
+    final current = _currentQueryAndSort();
 
+    emit(ProjectDeleteInProgress(event.projectId));
+
+    final result = await _deleteProject(projectId: event.projectId);
+
+    await result.fold(
+          (failure) async {
+        emit(ProjectDeleteFailure(event.projectId, failure.message));
+        await _fetchAndEmit(emit, query: current.$1, sortOption: current.$2);
+      },
+          (_) async {
+        emit(ProjectDeleteSuccess(event.projectId));
+        await _fetchAndEmit(emit, query: current.$1, sortOption: current.$2);
+      },
+    );
+  }
+
+  (String, ProjectSortOption) _currentQueryAndSort() {
+    final current = state;
+    if (current is ProjectsSuccess) {
+      return (current.query, current.sortOption);
+    }
+    return ('', ProjectSortOption.newest);
+  }
+
+  Future<void> _fetchAndEmit(
+      Emitter<ProjectsState> emit, {
+        String query = '',
+        ProjectSortOption sortOption = ProjectSortOption.newest,
+      }) async {
     final orgId = await _currentSession.currentOrgId;
     if (orgId == null || orgId.isEmpty) {
       emit(const ProjectsError('No active organization found for this session'));
