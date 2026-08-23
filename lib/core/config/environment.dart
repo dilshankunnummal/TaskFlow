@@ -10,14 +10,14 @@ final class Environment {
   factory Environment.mock() {
     return const Environment._(
       dataSourceMode: DataSourceMode.mockJson,
-      mockDataAssetPath: 'mock_data/taskflow_mock_data.json',
+      mockDataAssetPath: 'assets/mock_data/mock-data.json',
     );
   }
 
   factory Environment.rest(String baseUrl) {
     return Environment._(
       dataSourceMode: DataSourceMode.restApi,
-      mockDataAssetPath: 'mock_data/taskflow_mock_data.json',
+      mockDataAssetPath: 'assets/mock_data/mock-data.json',
       apiBaseUrl: baseUrl,
     );
   }

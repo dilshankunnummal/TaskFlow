@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:taskflow/core/error/exceptions.dart';
 import 'package:taskflow/core/error/failures.dart';
 
@@ -23,9 +24,11 @@ sealed class Result<T> {
   static Result<T> guardSync<T>(T Function() body) {
     try {
       return Success(body());
-    } on AppException catch (exception) {
+    } on AppException catch (exception, stackTrace) {
+      debugPrint('[Result.guardSync] AppException: $exception\n$stackTrace');
       return ResultFailure(exception.toFailure());
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[Result.guardSync] Unexpected error: $error\n$stackTrace');
       return const ResultFailure(UnknownFailure());
     }
   }
@@ -34,9 +37,11 @@ sealed class Result<T> {
     try {
       final value = await body();
       return Success(value);
-    } on AppException catch (exception) {
+    } on AppException catch (exception, stackTrace) {
+      debugPrint('[Result.guard] AppException: $exception\n$stackTrace');
       return ResultFailure(exception.toFailure());
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[Result.guard] Unexpected error: $error\n$stackTrace');
       return const ResultFailure(UnknownFailure());
     }
   }

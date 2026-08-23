@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:taskflow/core/constants/storage_keys.dart';
 import 'package:taskflow/core/data/mock_json_loader.dart';
@@ -64,7 +65,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       }
 
       return DateTime.now().isBefore(expiresAt);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[AuthLocalDataSource.hasValidSession] $error\n$stackTrace');
       throw const CacheException('Unable to read the authentication session.');
     }
   }
@@ -77,7 +79,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     final authMock = await _mockJsonLoader.object('auth_mock');
     final credentials =
         (authMock['test_credentials'] as List).cast<Map<String, dynamic>>();
-    final expiresInSeconds = authMock['access_token_expires_in_seconds'] as int;
+    final mockLoginResponse = authMock['mock_login_response'] as Map<String, dynamic>;
+    final expiresInSeconds = mockLoginResponse['access_token_expires_in_seconds'] as int;
 
     final normalizedEmail = request.email.trim().toLowerCase();
     Map<String, dynamic>? matchedCredential;
@@ -98,7 +101,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     final users = await _mockJsonLoader.section('users');
     Map<String, dynamic>? matchedUser;
     for (final user in users) {
-      if (user['id'] == matchedCredential['user_id']) {
+      final userEmail = (user['email'] as String).trim().toLowerCase();
+      if (userEmail == normalizedEmail) {
         matchedUser = user;
         break;
       }
@@ -108,8 +112,11 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       throw const NotFoundException('No account found for these credentials.');
     }
 
-    final userModel = UserModel.fromJson(matchedUser,
-        orgId: matchedCredential['org_id'] as String);
+    final userModel = UserModel.fromJson(
+      matchedUser,
+      orgId: matchedCredential['org_id'] as String,
+      role: matchedCredential['role'] as String,
+    );
 
     return LoginResponse(
       accessToken: 'access-${_idGenerator.generate()}',
@@ -142,7 +149,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
           value: session.loginTimestamp.toIso8601String(),
         ),
       ]);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[AuthLocalDataSource.persistSession] $error\n$stackTrace');
       throw const CacheException(
           'Unable to persist the authentication session.');
     }
@@ -160,7 +168,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         _secureStorage.delete(key: SecureStorageKeys.currentUserRole),
         _secureStorage.delete(key: SecureStorageKeys.loginTimestamp),
       ]);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[AuthLocalDataSource.clearSession] $error\n$stackTrace');
       throw const CacheException('Unable to clear the authentication session.');
     }
   }
@@ -176,6 +185,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
       final orgId =
           await _secureStorage.read(key: SecureStorageKeys.currentOrgId) ?? '';
+      final role =
+          await _secureStorage.read(key: SecureStorageKeys.currentUserRole) ?? '';
       final users = await _mockJsonLoader.section('users');
       Map<String, dynamic>? matchedUser;
       for (final user in users) {
@@ -189,8 +200,9 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         return null;
       }
 
-      return UserModel.fromJson(matchedUser, orgId: orgId);
-    } catch (_) {
+      return UserModel.fromJson(matchedUser, orgId: orgId, role: role);
+    } catch (error, stackTrace) {
+      debugPrint('[AuthLocalDataSource.getCurrentUser] $error\n$stackTrace');
       throw const CacheException('Unable to read the current user.');
     }
   }
@@ -224,7 +236,8 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       }
 
       return DateTime.now().isBefore(expiresAt) ? SessionStatus.valid : SessionStatus.expired;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[AuthLocalDataSource.getSessionStatus] $error\n$stackTrace');
       throw const CacheException('Unable to read the authentication session.');
     }
   }

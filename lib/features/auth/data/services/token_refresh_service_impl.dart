@@ -26,7 +26,8 @@ final class TokenRefreshServiceImpl implements TokenRefreshService {
       }
 
       final authMock = await _mockJsonLoader.object('auth_mock');
-      final expiresInSeconds = authMock['access_token_expires_in_seconds'] as int;
+      final mockLoginResponse = authMock['mock_login_response'] as Map<String, dynamic>;
+      final expiresInSeconds = mockLoginResponse['access_token_expires_in_seconds'] as int;
 
       return RefreshedTokens(
         accessToken: 'access-${_idGenerator.generate()}',

@@ -9,12 +9,16 @@ final class UserModel {
     required this.orgId,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json, {required String orgId}) {
+  factory UserModel.fromJson(
+    Map<String, dynamic> json, {
+    required String orgId,
+    required String role,
+  }) {
     return UserModel(
       id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
-      role: json['role'] as String,
+      role: role,
       orgId: orgId,
     );
   }

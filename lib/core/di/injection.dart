@@ -20,6 +20,11 @@ import 'package:taskflow/features/auth/domain/usecases/register_usecase.dart';
 import 'package:taskflow/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:taskflow/features/auth/presentation/bloc/register_bloc.dart';
 import 'package:taskflow/features/auth/presentation/bloc/splash_bloc.dart';
+import 'package:taskflow/features/home/data/datasources/home_mock_datasource.dart';
+import 'package:taskflow/features/home/data/repositories/home_repository_impl.dart';
+import 'package:taskflow/features/home/domain/repositories/home_repository.dart';
+import 'package:taskflow/features/home/domain/usecases/get_dashboard_data_usecase.dart';
+import 'package:taskflow/features/home/presentation/bloc/dashboard_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -128,6 +133,30 @@ Future<void> configureDependencies({Environment? environment}) async {
   if (!getIt.isRegistered<SplashBloc>()) {
     getIt.registerFactory<SplashBloc>(
           () => SplashBloc(getIt<CheckSessionUseCase>(), getIt<RefreshTokenUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<HomeMockDataSource>()) {
+    getIt.registerLazySingleton<HomeMockDataSource>(
+      () => HomeMockDataSourceImpl(getIt<MockJsonLoader>(), getIt<SimulatedNetwork>()),
+    );
+  }
+
+  if (!getIt.isRegistered<HomeRepository>()) {
+    getIt.registerLazySingleton<HomeRepository>(
+      () => HomeRepositoryImpl(getIt<AuthRepository>(), getIt<HomeMockDataSource>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetDashboardDataUseCase>()) {
+    getIt.registerLazySingleton<GetDashboardDataUseCase>(
+      () => GetDashboardDataUseCase(getIt<HomeRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<DashboardBloc>()) {
+    getIt.registerFactory<DashboardBloc>(
+      () => DashboardBloc(getIt<GetDashboardDataUseCase>()),
     );
   }
 }
