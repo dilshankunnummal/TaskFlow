@@ -52,11 +52,15 @@ import 'package:taskflow/features/tasks/domain/usecases/create_task_usecase.dart
 import 'package:taskflow/features/tasks/domain/usecases/update_task_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/delete_task_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_assignees_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/get_organization_members_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/assign_task_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/unassign_task_usecase.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_list_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_create_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_edit_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_delete_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -411,6 +415,34 @@ Future<void> configureDependencies({Environment? environment}) async {
   if (!getIt.isRegistered<TaskDeleteBloc>()) {
     getIt.registerFactory<TaskDeleteBloc>(
           () => TaskDeleteBloc(getIt<DeleteTaskUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<GetOrganizationMembersUseCase>()) {
+    getIt.registerLazySingleton<GetOrganizationMembersUseCase>(
+          () => GetOrganizationMembersUseCase(getIt<TaskRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<AssignTaskUseCase>()) {
+    getIt.registerLazySingleton<AssignTaskUseCase>(
+          () => AssignTaskUseCase(getIt<TaskRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<UnassignTaskUseCase>()) {
+    getIt.registerLazySingleton<UnassignTaskUseCase>(
+          () => UnassignTaskUseCase(getIt<TaskRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TaskAssignmentBloc>()) {
+    getIt.registerFactory<TaskAssignmentBloc>(
+          () => TaskAssignmentBloc(
+        getIt<GetOrganizationMembersUseCase>(),
+        getIt<AssignTaskUseCase>(),
+        getIt<UnassignTaskUseCase>(),
+      ),
     );
   }
 }

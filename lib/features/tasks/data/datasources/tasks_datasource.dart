@@ -2,6 +2,7 @@ import 'package:injectable/injectable.dart';
 import 'package:taskflow/core/data/mock_json_data_source.dart';
 import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/core/network/mock_network.dart';
+import 'package:taskflow/features/tasks/data/models/organization_member_model.dart';
 import 'package:taskflow/features/tasks/data/models/task_assignee_model.dart';
 import 'package:taskflow/features/tasks/data/models/task_comment_model.dart';
 import 'package:taskflow/features/tasks/data/models/task_details_model.dart';
@@ -13,6 +14,11 @@ abstract class TasksDataSource {
   Future<TaskDetailsModel> getTaskDetails({required String taskId});
 
   Future<List<TaskAssigneeModel>> getAssignees();
+
+  Future<List<OrganizationMemberModel>> getOrganizationMembers(
+      String organizationId);
+
+  Future<String?> getOrganizationIdForProject(String projectId);
 }
 
 @LazySingleton(as: TasksDataSource)
@@ -109,5 +115,51 @@ class MockTasksDataSource implements TasksDataSource {
 
     final userRows = await _jsonDataSource.section('users');
     return userRows.map(TaskAssigneeModel.fromJson).toList();
+  }
+
+  @override
+  Future<List<OrganizationMemberModel>> getOrganizationMembers(
+      String organizationId) async {
+    await _network.simulateDelay();
+
+    if (!_network.isOnline) {
+      throw const OfflineFailure(null);
+    }
+
+    final orgMemberRows = await _jsonDataSource.section('org_members');
+    final matchingOrgMembers = orgMemberRows
+        .where((row) => row['org_id'] == organizationId)
+        .toList();
+
+    final userRows = await _jsonDataSource.section('users');
+    final userMap = <String, Map<String, dynamic>>{
+      for (final u in userRows) u['id'] as String: u,
+    };
+
+    final result = <OrganizationMemberModel>[];
+    for (final member in matchingOrgMembers) {
+      final userId = member['user_id'] as String;
+      final role = member['role'] as String? ?? 'member';
+      if (userMap.containsKey(userId)) {
+        result.add(
+          OrganizationMemberModel.fromJson(
+            userMap[userId]!,
+            role: role,
+          ),
+        );
+      }
+    }
+    return result;
+  }
+
+  @override
+  Future<String?> getOrganizationIdForProject(String projectId) async {
+    final projectRows = await _jsonDataSource.section('projects');
+    final projectRow = projectRows.firstWhere(
+      (row) => row['id'] == projectId,
+      orElse: () => const <String, dynamic>{},
+    );
+    if (projectRow.isEmpty) return null;
+    return projectRow['org_id'] as String?;
   }
 }

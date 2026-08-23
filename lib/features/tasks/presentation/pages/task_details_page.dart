@@ -11,13 +11,20 @@ import 'package:taskflow/core/utils/date_formatter.dart';
 import 'package:taskflow/core/widgets/avatars/app_avatar.dart';
 import 'package:taskflow/core/widgets/cards/app_card.dart';
 import 'package:taskflow/core/widgets/chips/app_status_chip.dart';
+import 'package:taskflow/core/widgets/dialogs/app_bottom_sheet.dart';
 import 'package:taskflow/core/widgets/dialogs/app_confirm_dialog.dart';
+import 'package:taskflow/core/widgets/dialogs/app_dialog.dart';
 import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
+import 'package:taskflow/core/widgets/inputs/app_text_field.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
+import 'package:taskflow/features/tasks/domain/entities/organization_member.dart';
 import 'package:taskflow/features/tasks/domain/entities/task.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_assignee.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_comment.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_event.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_state.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_delete_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_delete_event.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_delete_state.dart';
@@ -39,6 +46,9 @@ class TaskDetailsPage extends StatelessWidget {
         ),
         BlocProvider(
           create: (_) => getIt<TaskDeleteBloc>(),
+        ),
+        BlocProvider(
+          create: (_) => getIt<TaskAssignmentBloc>(),
         ),
       ],
       child: TaskDetailsView(taskId: taskId),
@@ -64,10 +74,31 @@ class TaskDetailsView extends StatelessWidget {
     }
   }
 
+  void _handleAssignmentListener(
+      BuildContext context, TaskAssignmentState state) {
+    if (state is TaskAssignmentSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task assignee updated')),
+      );
+      context.read<TaskDetailsBloc>().add(RefreshTaskDetails(taskId));
+    } else if (state is TaskAssignmentError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.message)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<TaskDeleteBloc, TaskDeleteState>(
-      listener: _handleDeleteListener,
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<TaskDeleteBloc, TaskDeleteState>(
+          listener: _handleDeleteListener,
+        ),
+        BlocListener<TaskAssignmentBloc, TaskAssignmentState>(
+          listener: _handleAssignmentListener,
+        ),
+      ],
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Task Details'),
@@ -223,7 +254,7 @@ class _MobileLayout extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
         _TaskDetailsCard(task: state.task),
         const SizedBox(height: AppSpacing.lg),
-        _AssigneeCard(assignee: state.assignee),
+        _AssigneeCard(task: state.task, assignee: state.assignee),
         const SizedBox(height: AppSpacing.lg),
         _CommentsCard(comments: state.comments),
       ],
@@ -256,7 +287,7 @@ class _TabletLayout extends StatelessWidget {
           flex: 2,
           child: Column(
             children: [
-              _AssigneeCard(assignee: state.assignee),
+              _AssigneeCard(task: state.task, assignee: state.assignee),
               const SizedBox(height: AppSpacing.lg),
               _CommentsCard(comments: state.comments),
             ],
@@ -437,9 +468,68 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _AssigneeCard extends StatelessWidget {
-  const _AssigneeCard({required this.assignee});
+  const _AssigneeCard({
+    required this.task,
+    required this.assignee,
+  });
 
+  final Task task;
   final TaskAssignee? assignee;
+
+  void _showAssignUserModal(BuildContext context) {
+    final assignmentBloc = context.read<TaskAssignmentBloc>();
+    assignmentBloc.add(
+      LoadOrganizationMembers(
+        projectId: task.projectId,
+        currentAssigneeId: assignee?.id,
+      ),
+    );
+
+    final width = MediaQuery.of(context).size.width;
+    final isTablet =
+        AppBreakpoints.isTablet(width) || AppBreakpoints.isDesktop(width);
+
+    final content = _AssignUserModalContent(
+      task: task,
+      currentAssigneeId: assignee?.id,
+      assignmentBloc: assignmentBloc,
+    );
+
+    if (isTablet) {
+      AppDialog.show(
+        context,
+        title: 'Assign User',
+        content: SizedBox(
+          width: 480,
+          height: 480,
+          child: content,
+        ),
+      );
+    } else {
+      AppBottomSheet.show(
+        context,
+        child: SizedBox(
+          height: 480,
+          child: content,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleRemoveAssignee(BuildContext context) async {
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: 'Remove Assignee',
+      message:
+          'Are you sure you want to remove the assignee from "${task.title}"?',
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<TaskAssignmentBloc>().add(RemoveUserFromTask(task.id));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -450,8 +540,63 @@ class _AssigneeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Assignee', style: textTheme.titleSmall),
-          const SizedBox(height: AppSpacing.md),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('Assignee', style: textTheme.titleSmall),
+              if (assignee == null)
+                TextButton.icon(
+                  key: const Key('assignUserButton'),
+                  style: TextButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: () => _showAssignUserModal(context),
+                  icon: const Icon(Icons.person_add_outlined, size: 16),
+                  label: const Text('Assign User'),
+                )
+              else
+                Row(
+                  children: [
+                    TextButton.icon(
+                      key: const Key('changeAssigneeButton'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xs),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => _showAssignUserModal(context),
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      label: const Text('Change'),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    TextButton.icon(
+                      key: const Key('removeAssigneeButton'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.xs),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => _handleRemoveAssignee(context),
+                      icon: const Icon(Icons.person_remove_outlined, size: 16),
+                      label: Text(
+                        'Remove',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
           if (assignee == null)
             _UnassignedRow(
               textTheme: textTheme,
@@ -501,13 +646,181 @@ class _UnassignedRow extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.md),
         Text(
-          'Unassigned',
+          'No assignee',
           style: textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
             fontStyle: FontStyle.italic,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AssignUserModalContent extends StatefulWidget {
+  const _AssignUserModalContent({
+    required this.task,
+    required this.currentAssigneeId,
+    required this.assignmentBloc,
+  });
+
+  final Task task;
+  final String? currentAssigneeId;
+  final TaskAssignmentBloc assignmentBloc;
+
+  @override
+  State<_AssignUserModalContent> createState() =>
+      _AssignUserModalContentState();
+}
+
+class _AssignUserModalContentState extends State<_AssignUserModalContent> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return BlocProvider.value(
+      value: widget.assignmentBloc,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Assign User', style: textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
+            key: const Key('assignUserSearchField'),
+            controller: _searchController,
+            hintText: 'Search members...',
+            prefixIcon: Icons.search_rounded,
+            onChanged: (query) => setState(() => _searchQuery = query),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Expanded(
+            child: BlocBuilder<TaskAssignmentBloc, TaskAssignmentState>(
+              builder: (context, state) {
+                if (state is TaskAssignmentLoading ||
+                    state is TaskAssignmentInitial) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (state is TaskAssignmentError) {
+                  return ErrorStateWidget(
+                    message: state.message,
+                    onRetry: () => widget.assignmentBloc.add(
+                      LoadOrganizationMembers(
+                        projectId: widget.task.projectId,
+                        currentAssigneeId: widget.currentAssigneeId,
+                      ),
+                    ),
+                  );
+                }
+
+                if (state is TaskAssignmentLoaded) {
+                  final filteredMembers = state.members.where((m) {
+                    final q = _searchQuery.trim().toLowerCase();
+                    if (q.isEmpty) return true;
+                    return m.name.toLowerCase().contains(q) ||
+                        m.email.toLowerCase().contains(q);
+                  }).toList();
+
+                  if (filteredMembers.isEmpty) {
+                    return const EmptyStateWidget(
+                      icon: Icons.people_outline_rounded,
+                      title: 'No members found',
+                      message: 'No organization members match your search.',
+                    );
+                  }
+
+                  return ListView.separated(
+                    itemCount: filteredMembers.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final member = filteredMembers[index];
+                      final isCurrent =
+                          member.id == widget.currentAssigneeId;
+                      final roleLabel = member.role == 'org_admin'
+                          ? 'Org Admin'
+                          : 'Member';
+
+                      return ListTile(
+                        key: Key('memberTile_${member.id}'),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        tileColor: isCurrent
+                            ? colorScheme.primaryContainer.withOpacity(0.2)
+                            : colorScheme.surfaceContainerHighest
+                                .withOpacity(0.3),
+                        leading: AppAvatar(name: member.name, size: 40),
+                        title: Text(
+                          member.name,
+                          style: textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          member.email,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                roleLabel,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            if (isCurrent) ...[
+                              const SizedBox(width: AppSpacing.sm),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: colorScheme.primary,
+                                size: 20,
+                              ),
+                            ],
+                          ],
+                        ),
+                        onTap: () {
+                          widget.assignmentBloc.add(
+                            AssignUserToTask(
+                              taskId: widget.task.id,
+                              userId: member.id,
+                            ),
+                          );
+                          Navigator.of(context).pop();
+                        },
+                      );
+                    },
+                  );
+                }
+
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

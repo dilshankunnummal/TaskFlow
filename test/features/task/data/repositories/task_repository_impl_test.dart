@@ -6,6 +6,7 @@ import 'package:taskflow/features/tasks/data/datasources/tasks_datasource.dart';
 import 'package:taskflow/features/tasks/data/datasources/tasks_local_datasource.dart';
 import 'package:taskflow/features/tasks/data/models/task_model.dart';
 import 'package:taskflow/features/tasks/data/repositories/task_repository_impl.dart';
+import 'package:taskflow/features/tasks/domain/entities/organization_member.dart';
 import 'package:taskflow/features/tasks/domain/entities/task.dart';
 
 class MockTasksDataSource extends Mock implements TasksDataSource {}
@@ -120,6 +121,18 @@ void main() {
 
       expect(result, const Right(unit));
       verify(() => localDataSource.deleteTask(taskId)).called(1);
+    });
+  });
+
+  group('TaskRepositoryImpl.getOrganizationMembers', () {
+    test('returns members list from data source', () async {
+      when(() => dataSource.getOrganizationMembers('org_a1b2c3'))
+          .thenAnswer((_) async => []);
+
+      final result = await repository.getOrganizationMembers('org_a1b2c3');
+
+      expect(result.isRight(), isTrue);
+      verify(() => dataSource.getOrganizationMembers('org_a1b2c3')).called(1);
     });
   });
 }

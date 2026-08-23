@@ -51,6 +51,19 @@ class OfflineFailure extends Failure {
   const OfflineFailure(this.cachedData, [super.message = 'You are offline']);
 }
 
+final class TaskNotFoundFailure extends Failure {
+  const TaskNotFoundFailure([super.message = 'Task not found.']);
+}
+
+final class UserNotFoundFailure extends Failure {
+  const UserNotFoundFailure([super.message = 'User not found.']);
+}
+
+final class InvalidOrganizationFailure extends Failure {
+  const InvalidOrganizationFailure(
+      [super.message = 'User does not belong to the task\'s organization.']);
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'An unexpected error occurred.']);
 }

@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart' hide Task;
 import 'package:taskflow/core/error/failures.dart';
+import 'package:taskflow/features/tasks/domain/entities/organization_member.dart';
 import 'package:taskflow/features/tasks/domain/entities/task.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_details.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_assignee.dart';
@@ -18,4 +19,16 @@ abstract class TaskRepository {
   Future<Either<Failure, Unit>> deleteTask(String taskId);
 
   Future<Either<Failure, List<TaskAssignee>>> getAssignees();
+
+  Future<Either<Failure, List<OrganizationMember>>> getOrganizationMembers(
+      String organizationId);
+
+  Future<Either<Failure, Task>> assignTask({
+    required String taskId,
+    required String userId,
+  });
+
+  Future<Either<Failure, Task>> unassignTask(String taskId);
+
+  Future<Either<Failure, String>> getOrganizationIdForProject(String projectId);
 }

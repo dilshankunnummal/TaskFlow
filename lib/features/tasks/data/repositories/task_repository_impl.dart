@@ -1,11 +1,11 @@
 import 'package:dartz/dartz.dart' hide Task;
-import 'package:flutter/foundation.dart';
 import 'package:injectable/injectable.dart';
 import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/core/utils/logger.dart';
 import 'package:taskflow/features/tasks/data/datasources/tasks_datasource.dart';
 import 'package:taskflow/features/tasks/data/datasources/tasks_local_datasource.dart';
 import 'package:taskflow/features/tasks/data/models/task_model.dart';
+import 'package:taskflow/features/tasks/domain/entities/organization_member.dart';
 import 'package:taskflow/features/tasks/domain/entities/task.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_details.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_assignee.dart';
@@ -296,6 +296,162 @@ class TaskRepositoryImpl implements TaskRepository {
     } catch (error, stackTrace) {
       AppLogger.error(
         'TaskRepositoryImpl.getAssignees failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<OrganizationMember>>> getOrganizationMembers(
+      String organizationId) async {
+    try {
+      final models =
+          await _dataSource.getOrganizationMembers(organizationId);
+      return Right(models);
+    } on OfflineFailure {
+      return const Left(
+          OfflineFailure(null, 'You are offline. Cannot fetch members.'));
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.getOrganizationMembers failed for orgId=$organizationId',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Task>> assignTask({
+    required String taskId,
+    required String userId,
+  }) async {
+    try {
+      final taskDetailsResult = await getTaskDetails(taskId: taskId);
+      Task? existingTask;
+      taskDetailsResult.fold((_) => null, (details) => existingTask = details.task);
+
+      if (existingTask == null) {
+        return const Left(TaskNotFoundFailure());
+      }
+
+      final projectId = existingTask!.projectId;
+      final orgId = await _dataSource.getOrganizationIdForProject(projectId);
+      if (orgId == null) {
+        return const Left(InvalidOrganizationFailure());
+      }
+
+      final orgMembers = await _dataSource.getOrganizationMembers(orgId);
+      final isMember = orgMembers.any((m) => m.id == userId);
+      if (!isMember) {
+        final allAssignees = await _dataSource.getAssignees();
+        final userExists = allAssignees.any((a) => a.id == userId);
+        if (!userExists) {
+          return const Left(UserNotFoundFailure());
+        }
+        return const Left(InvalidOrganizationFailure());
+      }
+
+      final updatedTask = Task(
+        id: existingTask!.id,
+        projectId: existingTask!.projectId,
+        title: existingTask!.title,
+        description: existingTask!.description,
+        status: existingTask!.status,
+        priority: existingTask!.priority,
+        assigneeId: userId,
+        dueDate: existingTask!.dueDate,
+        createdAt: existingTask!.createdAt,
+      );
+
+      await _localDataSource.upsertTask(TaskModel.fromEntity(updatedTask));
+      final cachedList = _lastSuccessfulByProject[projectId];
+      if (cachedList != null) {
+        final index = cachedList.indexWhere((t) => t.id == taskId);
+        if (index != -1) {
+          final updatedList = List<Task>.from(cachedList);
+          updatedList[index] = updatedTask;
+          _lastSuccessfulByProject[projectId] = updatedList;
+        } else {
+          _lastSuccessfulByProject[projectId] = [...cachedList, updatedTask];
+        }
+      }
+
+      return Right(updatedTask);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.assignTask failed for taskId=$taskId, userId=$userId',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Task>> unassignTask(String taskId) async {
+    try {
+      final taskDetailsResult = await getTaskDetails(taskId: taskId);
+      Task? existingTask;
+      taskDetailsResult.fold((_) => null, (details) => existingTask = details.task);
+
+      if (existingTask == null) {
+        return const Left(TaskNotFoundFailure());
+      }
+
+      final updatedTask = Task(
+        id: existingTask!.id,
+        projectId: existingTask!.projectId,
+        title: existingTask!.title,
+        description: existingTask!.description,
+        status: existingTask!.status,
+        priority: existingTask!.priority,
+        assigneeId: null,
+        dueDate: existingTask!.dueDate,
+        createdAt: existingTask!.createdAt,
+      );
+
+      await _localDataSource.upsertTask(TaskModel.fromEntity(updatedTask));
+      final projectId = existingTask!.projectId;
+      final cachedList = _lastSuccessfulByProject[projectId];
+      if (cachedList != null) {
+        final index = cachedList.indexWhere((t) => t.id == taskId);
+        if (index != -1) {
+          final updatedList = List<Task>.from(cachedList);
+          updatedList[index] = updatedTask;
+          _lastSuccessfulByProject[projectId] = updatedList;
+        }
+      }
+
+      return Right(updatedTask);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.unassignTask failed for taskId=$taskId',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> getOrganizationIdForProject(
+      String projectId) async {
+    try {
+      final orgId = await _dataSource.getOrganizationIdForProject(projectId);
+      if (orgId == null) {
+        return const Left(InvalidOrganizationFailure());
+      }
+      return Right(orgId);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.getOrganizationIdForProject failed for projectId=$projectId',
         error: error,
         stackTrace: stackTrace,
       );
