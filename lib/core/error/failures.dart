@@ -59,6 +59,11 @@ final class UserNotFoundFailure extends Failure {
   const UserNotFoundFailure([super.message = 'User not found.']);
 }
 
+final class NotificationNotFoundFailure extends Failure {
+  const NotificationNotFoundFailure(
+      [super.message = 'Notification not found.']);
+}
+
 final class InvalidOrganizationFailure extends Failure {
   const InvalidOrganizationFailure(
       [super.message = 'User does not belong to the task\'s organization.']);

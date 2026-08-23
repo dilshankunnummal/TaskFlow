@@ -9,7 +9,6 @@ final class DashboardQuickActions extends StatelessWidget {
 
   static const List<_QuickAction> _actions = [
     _QuickAction(label: 'Projects', icon: Icons.folder_outlined, route: AppRoutes.projects),
-    _QuickAction(label: 'Tasks', icon: Icons.checklist_outlined, route: AppRoutes.tasks),
     _QuickAction(label: 'Profile', icon: Icons.person_outline_rounded, route: AppRoutes.profile),
   ];
 

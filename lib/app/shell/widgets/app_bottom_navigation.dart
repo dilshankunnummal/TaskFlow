@@ -22,11 +22,6 @@ final class AppBottomNavigation extends StatelessWidget {
       label: 'Projects',
     ),
     _NavDestination(
-      icon: Icons.checklist_outlined,
-      activeIcon: Icons.checklist_rounded,
-      label: 'Tasks',
-    ),
-    _NavDestination(
       icon: Icons.person_outline_rounded,
       activeIcon: Icons.person_rounded,
       label: 'Profile',

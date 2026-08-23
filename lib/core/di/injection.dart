@@ -67,6 +67,12 @@ import 'package:taskflow/features/profile/domain/repositories/profile_repository
 import 'package:taskflow/features/profile/domain/usecases/get_current_user_usecase.dart';
 import 'package:taskflow/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_assignment_bloc.dart';
+import 'package:taskflow/features/notifications/data/datasources/notification_datasource.dart';
+import 'package:taskflow/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:taskflow/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:taskflow/features/notifications/domain/usecases/get_notifications_usecase.dart';
+import 'package:taskflow/features/notifications/domain/usecases/mark_notification_read_usecase.dart';
+import 'package:taskflow/features/notifications/presentation/bloc/notification_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -490,6 +496,45 @@ Future<void> configureDependencies({Environment? environment}) async {
         getIt<GetCurrentUserUseCase>(),
         getIt<ProfileRepository>(),
         getIt<ConnectivityManager>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<NotificationDataSource>()) {
+    getIt.registerLazySingleton<NotificationDataSource>(
+      () => MockNotificationDataSource(
+        getIt<MockJsonDataSource>(),
+        getIt<ConnectivityManager>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<NotificationRepository>()) {
+    getIt.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(
+        getIt<NotificationDataSource>(),
+        getIt<ConnectivityManager>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<GetNotificationsUseCase>()) {
+    getIt.registerLazySingleton<GetNotificationsUseCase>(
+      () => GetNotificationsUseCase(getIt<NotificationRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<MarkNotificationReadUseCase>()) {
+    getIt.registerLazySingleton<MarkNotificationReadUseCase>(
+      () => MarkNotificationReadUseCase(getIt<NotificationRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<NotificationBloc>()) {
+    getIt.registerFactory<NotificationBloc>(
+      () => NotificationBloc(
+        getIt<GetNotificationsUseCase>(),
+        getIt<MarkNotificationReadUseCase>(),
       ),
     );
   }

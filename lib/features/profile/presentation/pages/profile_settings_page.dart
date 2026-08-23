@@ -18,6 +18,7 @@ import 'package:taskflow/core/widgets/loading/app_shimmer_box.dart';
 import 'package:taskflow/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:taskflow/features/profile/presentation/bloc/profile_event.dart';
 import 'package:taskflow/features/profile/presentation/bloc/profile_state.dart';
+import 'package:taskflow/features/notifications/presentation/widgets/notification_badge_button.dart';
 
 class ProfileSettingsPage extends StatelessWidget {
   const ProfileSettingsPage({super.key});
@@ -73,6 +74,7 @@ class ProfileSettingsView extends StatelessWidget {
                               style: textTheme.headlineSmall,
                             ),
                           ),
+                          const NotificationBadgeButton(),
                         ],
                       ),
                     ),

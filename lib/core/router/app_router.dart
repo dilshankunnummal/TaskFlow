@@ -17,6 +17,7 @@ import 'package:taskflow/features/tasks/presentation/pages/task_details_page.dar
 import 'package:taskflow/features/tasks/presentation/pages/task_edit_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_list_page.dart';
 import 'package:taskflow/features/tasks/presentation/pages/task_create_page.dart';
+import 'package:taskflow/features/notifications/presentation/pages/notification_page.dart';
 
 final class AppRouter {
   const AppRouter._();
@@ -89,6 +90,12 @@ final class AppRouter {
           taskId: state.pathParameters['taskId']!,
         ),
       ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        name: 'notifications',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const NotificationPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
@@ -106,18 +113,6 @@ final class AppRouter {
                 path: AppRoutes.projects,
                 name: 'projects',
                 builder: (context, state) => const ProjectsListPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoutes.tasks,
-                builder: (context, state) => const ComingSoonPage(
-                  title: 'Tasks',
-                  message: 'Your assigned and tracked tasks will live here soon.',
-                  icon: Icons.checklist_outlined,
-                ),
               ),
             ],
           ),

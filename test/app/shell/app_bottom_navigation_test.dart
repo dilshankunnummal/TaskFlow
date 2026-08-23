@@ -27,11 +27,6 @@ void main() {
             ),
             StatefulShellBranch(
               routes: [
-                GoRoute(path: '/tasks', builder: (context, state) => const Scaffold(body: Text('Tasks Screen'))),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
                 GoRoute(
                   path: '/profile',
                   builder: (context, state) => const Scaffold(body: Text('Profile Screen')),
@@ -44,13 +39,12 @@ void main() {
     );
   }
 
-  testWidgets('renders all four bottom navigation destinations', (tester) async {
+  testWidgets('renders all bottom navigation destinations', (tester) async {
     await tester.pumpWidget(MaterialApp.router(theme: AppTheme.dark(), routerConfig: buildRouter()));
     await tester.pumpAndSettle();
 
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Projects'), findsOneWidget);
-    expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Home Screen'), findsOneWidget);
   });

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:taskflow/core/router/app_routes.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/avatars/app_avatar.dart';
 import 'package:taskflow/core/widgets/chips/app_chip.dart';
+import 'package:taskflow/features/notifications/presentation/widgets/notification_badge_button.dart';
 import 'package:taskflow/features/auth/domain/entities/user_entity.dart';
 
 final class DashboardHeader extends StatelessWidget {
@@ -68,6 +71,7 @@ final class DashboardHeader extends StatelessWidget {
             ],
           ),
         ),
+        const NotificationBadgeButton(),
       ],
     );
   }

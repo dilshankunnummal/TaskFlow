@@ -17,6 +17,7 @@ import 'package:taskflow/features/projects/presentation/bloc/projects_event.dart
 import 'package:taskflow/features/projects/presentation/bloc/projects_state.dart';
 import 'package:taskflow/features/projects/presentation/widgets/project_card.dart';
 import 'package:taskflow/features/projects/presentation/widgets/projects_search_bar.dart';
+import 'package:taskflow/features/notifications/presentation/widgets/notification_badge_button.dart';
 import 'package:taskflow/features/projects/presentation/widgets/projects_sort_menu.dart';
 
 class ProjectsListPage extends StatelessWidget {
@@ -157,6 +158,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                           Expanded(
                               child: Text('Projects',
                                   style: textTheme.headlineSmall)),
+                          const NotificationBadgeButton(),
+                          const SizedBox(width: AppSpacing.xs),
                           BlocBuilder<ProjectsBloc, ProjectsState>(
                             builder: (context, state) {
                               final content = _resolveContentState(state);
