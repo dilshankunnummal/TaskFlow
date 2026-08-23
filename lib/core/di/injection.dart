@@ -32,7 +32,9 @@ import 'package:taskflow/features/projects/data/datasources/projects_datasource.
 import 'package:taskflow/features/projects/data/repositories/projects_repository_impl.dart';
 import 'package:taskflow/features/projects/domain/repositories/projects_repository.dart';
 import 'package:taskflow/features/projects/domain/usecases/get_projects.dart';
+import 'package:taskflow/features/projects/domain/usecases/get_project_details_usecase.dart';
 import 'package:taskflow/features/projects/presentation/bloc/projects_bloc.dart';
+import 'package:taskflow/features/projects/presentation/bloc/project_details_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -45,17 +47,17 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<NetworkInfo>()) {
     getIt.registerLazySingleton<NetworkInfo>(
-        () => NetworkInfoImpl(getIt<Connectivity>()));
+            () => NetworkInfoImpl(getIt<Connectivity>()));
   }
 
   if (!getIt.isRegistered<ConnectivityCubit>()) {
     getIt.registerLazySingleton<ConnectivityCubit>(
-        () => ConnectivityCubit(getIt<NetworkInfo>()));
+            () => ConnectivityCubit(getIt<NetworkInfo>()));
   }
 
   if (!getIt.isRegistered<FlutterSecureStorage>()) {
     getIt.registerLazySingleton<FlutterSecureStorage>(
-        () => const FlutterSecureStorage());
+            () => const FlutterSecureStorage());
   }
 
   if (!getIt.isRegistered<SharedPreferences>()) {
@@ -64,12 +66,12 @@ Future<void> configureDependencies({Environment? environment}) async {
   }
 
   getIt.registerLazySingleton<IdGenerator>(
-    () => const UuidIdGenerator(),
+        () => const UuidIdGenerator(),
   );
 
   if (!getIt.isRegistered<SimulatedNetworkConfig>()) {
     getIt.registerLazySingleton<SimulatedNetworkConfig>(
-      () => const SimulatedNetworkConfig(
+          () => const SimulatedNetworkConfig(
         minDelayMs: 300,
         maxDelayMs: 800,
         forceNotFoundId: 'force-404',
@@ -81,18 +83,18 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<SimulatedNetwork>()) {
     getIt.registerLazySingleton<SimulatedNetwork>(
-      () => SimulatedNetwork(getIt<SimulatedNetworkConfig>()),
+          () => SimulatedNetwork(getIt<SimulatedNetworkConfig>()),
     );
   }
 
   if (!getIt.isRegistered<MockJsonLoader>()) {
     getIt.registerLazySingleton<MockJsonLoader>(
-        () => MockJsonLoader(AppEnvironment.current));
+            () => MockJsonLoader(AppEnvironment.current));
   }
 
   if (!getIt.isRegistered<AuthLocalDataSource>()) {
     getIt.registerLazySingleton<AuthLocalDataSource>(
-      () => AuthLocalDataSourceImpl(
+          () => AuthLocalDataSourceImpl(
         getIt<FlutterSecureStorage>(),
         getIt<MockJsonLoader>(),
         getIt<SimulatedNetwork>(),
@@ -104,13 +106,13 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<AuthRepository>()) {
     getIt.registerLazySingleton<AuthRepository>(
-      () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
+          () => AuthRepositoryImpl(getIt<AuthLocalDataSource>()),
     );
   }
 
   if (!getIt.isRegistered<TokenRefreshService>()) {
     getIt.registerLazySingleton<TokenRefreshService>(
-      () => TokenRefreshServiceImpl(
+          () => TokenRefreshServiceImpl(
         getIt<SimulatedNetwork>(),
         getIt<MockJsonLoader>(),
         getIt<IdGenerator>(),
@@ -120,7 +122,7 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<LoginUseCase>()) {
     getIt.registerLazySingleton<LoginUseCase>(
-        () => LoginUseCase(getIt<AuthRepository>()));
+            () => LoginUseCase(getIt<AuthRepository>()));
   }
 
   if (!getIt.isRegistered<LoginBloc>()) {
@@ -129,54 +131,54 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<RegisterUseCase>()) {
     getIt.registerLazySingleton<RegisterUseCase>(
-        () => RegisterUseCase(getIt<AuthRepository>()));
+            () => RegisterUseCase(getIt<AuthRepository>()));
   }
 
   if (!getIt.isRegistered<RegisterBloc>()) {
     getIt.registerFactory<RegisterBloc>(
-        () => RegisterBloc(getIt<RegisterUseCase>()));
+            () => RegisterBloc(getIt<RegisterUseCase>()));
   }
 
   if (!getIt.isRegistered<CheckSessionUseCase>()) {
     getIt.registerLazySingleton<CheckSessionUseCase>(
-        () => CheckSessionUseCase(getIt<AuthRepository>()));
+            () => CheckSessionUseCase(getIt<AuthRepository>()));
   }
 
   if (!getIt.isRegistered<RefreshTokenUseCase>()) {
     getIt.registerLazySingleton<RefreshTokenUseCase>(
-        () => RefreshTokenUseCase(getIt<AuthRepository>()));
+            () => RefreshTokenUseCase(getIt<AuthRepository>()));
   }
 
   if (!getIt.isRegistered<SplashBloc>()) {
     getIt.registerFactory<SplashBloc>(
-      () => SplashBloc(
+          () => SplashBloc(
           getIt<CheckSessionUseCase>(), getIt<RefreshTokenUseCase>()),
     );
   }
 
   if (!getIt.isRegistered<HomeMockDataSource>()) {
     getIt.registerLazySingleton<HomeMockDataSource>(
-      () => HomeMockDataSourceImpl(
+          () => HomeMockDataSourceImpl(
           getIt<MockJsonLoader>(), getIt<SimulatedNetwork>()),
     );
   }
 
   if (!getIt.isRegistered<HomeRepository>()) {
     getIt.registerLazySingleton<HomeRepository>(
-      () => HomeRepositoryImpl(
+          () => HomeRepositoryImpl(
           getIt<AuthRepository>(), getIt<HomeMockDataSource>()),
     );
   }
 
   if (!getIt.isRegistered<GetDashboardDataUseCase>()) {
     getIt.registerLazySingleton<GetDashboardDataUseCase>(
-      () => GetDashboardDataUseCase(getIt<HomeRepository>()),
+          () => GetDashboardDataUseCase(getIt<HomeRepository>()),
     );
   }
 
   if (!getIt.isRegistered<DashboardBloc>()) {
     getIt.registerFactory<DashboardBloc>(
-      () => DashboardBloc(getIt<GetDashboardDataUseCase>()),
+          () => DashboardBloc(getIt<GetDashboardDataUseCase>()),
     );
   }
 
@@ -190,30 +192,41 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<CurrentSession>()) {
     getIt.registerLazySingleton<CurrentSession>(
-      () => CurrentSessionImpl(getIt<FlutterSecureStorage>()),
+          () => CurrentSessionImpl(getIt<FlutterSecureStorage>()),
     );
   }
   if (!getIt.isRegistered<ProjectsDataSource>()) {
     getIt.registerLazySingleton<ProjectsDataSource>(
-      () => MockProjectsDataSource(
+          () => MockProjectsDataSource(
           getIt<MockJsonDataSource>(), getIt<MockNetwork>()),
     );
   }
 
   if (!getIt.isRegistered<ProjectsRepository>()) {
     getIt.registerLazySingleton<ProjectsRepository>(
-      () => ProjectsRepositoryImpl(getIt<ProjectsDataSource>()),
+          () => ProjectsRepositoryImpl(getIt<ProjectsDataSource>()),
     );
   }
 
   if (!getIt.isRegistered<GetProjects>()) {
     getIt.registerLazySingleton<GetProjects>(
-        () => GetProjects(getIt<ProjectsRepository>()));
+            () => GetProjects(getIt<ProjectsRepository>()));
+  }
+
+  if (!getIt.isRegistered<GetProjectDetailsUseCase>()) {
+    getIt.registerLazySingleton<GetProjectDetailsUseCase>(
+            () => GetProjectDetailsUseCase(getIt<ProjectsRepository>()));
   }
 
   if (!getIt.isRegistered<ProjectsBloc>()) {
     getIt.registerFactory<ProjectsBloc>(
-      () => ProjectsBloc(getIt<GetProjects>(), getIt<CurrentSession>()),
+          () => ProjectsBloc(getIt<GetProjects>(), getIt<CurrentSession>()),
+    );
+  }
+
+  if (!getIt.isRegistered<ProjectDetailsBloc>()) {
+    getIt.registerFactory<ProjectDetailsBloc>(
+          () => ProjectDetailsBloc(getIt<GetProjectDetailsUseCase>()),
     );
   }
 }

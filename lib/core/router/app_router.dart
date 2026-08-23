@@ -7,7 +7,7 @@ import 'package:taskflow/features/auth/presentation/pages/login_page.dart';
 import 'package:taskflow/features/auth/presentation/pages/register_page.dart';
 import 'package:taskflow/features/auth/presentation/pages/splash_page.dart';
 import 'package:taskflow/features/home/presentation/pages/dashboard_page.dart';
-import 'package:taskflow/features/projects/presentation/pages/project_details_placeholder_page.dart';
+import 'package:taskflow/features/projects/presentation/pages/project_details_page.dart';
 import 'package:taskflow/features/projects/presentation/pages/projects_list_page.dart';
 
 final class AppRouter {
@@ -35,7 +35,7 @@ final class AppRouter {
       GoRoute(
         path: AppRoutes.projectDetail,
         name: 'projectDetails',
-        builder: (context, state) => ProjectDetailsPlaceholderPage(
+        builder: (context, state) => ProjectDetailsPage(
           projectId: state.pathParameters['projectId']!,
         ),
       ),
