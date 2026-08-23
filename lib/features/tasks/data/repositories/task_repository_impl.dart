@@ -238,6 +238,55 @@ class TaskRepositoryImpl implements TaskRepository {
   }
 
   @override
+  Future<Either<Failure, Task>> updateTask(Task task) async {
+    try {
+      await _localDataSource.upsertTask(TaskModel.fromEntity(task));
+      final projectId = task.projectId;
+      final cachedList = _lastSuccessfulByProject[projectId];
+      if (cachedList != null) {
+        final index = cachedList.indexWhere((t) => t.id == task.id);
+        if (index != -1) {
+          final updatedList = List<Task>.from(cachedList);
+          updatedList[index] = task;
+          _lastSuccessfulByProject[projectId] = updatedList;
+        } else {
+          _lastSuccessfulByProject[projectId] = [...cachedList, task];
+        }
+      }
+      return Right(task);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.updateTask failed for taskId=${task.id}',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteTask(String taskId) async {
+    try {
+      await _localDataSource.deleteTask(taskId);
+      for (final projectId in _lastSuccessfulByProject.keys) {
+        final cachedList = _lastSuccessfulByProject[projectId];
+        if (cachedList != null) {
+          _lastSuccessfulByProject[projectId] =
+              cachedList.where((t) => t.id != taskId).toList();
+        }
+      }
+      return const Right(unit);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'TaskRepositoryImpl.deleteTask failed for taskId=$taskId',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const Left(UnknownFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, List<TaskAssignee>>> getAssignees() async {
     try {
       final models = await _dataSource.getAssignees();

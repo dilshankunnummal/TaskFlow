@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:taskflow/core/di/injection.dart';
+import 'package:taskflow/core/router/app_routes.dart';
 import 'package:taskflow/core/theme/app_breakpoints.dart';
 import 'package:taskflow/core/theme/app_colors.dart';
 import 'package:taskflow/core/theme/app_radius.dart';
@@ -9,12 +11,16 @@ import 'package:taskflow/core/utils/date_formatter.dart';
 import 'package:taskflow/core/widgets/avatars/app_avatar.dart';
 import 'package:taskflow/core/widgets/cards/app_card.dart';
 import 'package:taskflow/core/widgets/chips/app_status_chip.dart';
+import 'package:taskflow/core/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
 import 'package:taskflow/features/tasks/domain/entities/task.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_assignee.dart';
 import 'package:taskflow/features/tasks/domain/entities/task_comment.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_delete_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_delete_event.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_delete_state.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_event.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_state.dart';
@@ -26,8 +32,15 @@ class TaskDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<TaskDetailsBloc>()..add(LoadTaskDetails(taskId)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<TaskDetailsBloc>()..add(LoadTaskDetails(taskId)),
+        ),
+        BlocProvider(
+          create: (_) => getIt<TaskDeleteBloc>(),
+        ),
+      ],
       child: TaskDetailsView(taskId: taskId),
     );
   }
@@ -38,28 +51,83 @@ class TaskDetailsView extends StatelessWidget {
 
   final String taskId;
 
+  void _handleDeleteListener(BuildContext context, TaskDeleteState state) {
+    if (state is TaskDeleteSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Task deleted successfully')),
+      );
+      context.pop(true);
+    } else if (state is TaskDeleteError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(state.message)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Details'),
-        actions: [
-          BlocBuilder<TaskDetailsBloc, TaskDetailsState>(
-            buildWhen: (prev, curr) =>
-                (prev is TaskDetailsSuccess) != (curr is TaskDetailsSuccess),
-            builder: (context, state) {
-              if (state is! TaskDetailsSuccess) return const SizedBox.shrink();
-              return IconButton(
-                icon: const Icon(Icons.refresh_rounded),
-                tooltip: 'Refresh',
-                onPressed: () => context
-                    .read<TaskDetailsBloc>()
-                    .add(RefreshTaskDetails(taskId)),
-              );
-            },
-          ),
-        ],
-      ),
+    return BlocListener<TaskDeleteBloc, TaskDeleteState>(
+      listener: _handleDeleteListener,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Task Details'),
+          actions: [
+            BlocBuilder<TaskDetailsBloc, TaskDetailsState>(
+              buildWhen: (prev, curr) =>
+                  (prev is TaskDetailsSuccess) != (curr is TaskDetailsSuccess),
+              builder: (context, state) {
+                if (state is! TaskDetailsSuccess) return const SizedBox.shrink();
+                return Row(
+                  children: [
+                    IconButton(
+                      key: const Key('editTaskButton'),
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit Task',
+                      onPressed: () async {
+                        final updated = await context.push<bool>(
+                          AppRoutes.editTaskPath(taskId),
+                        );
+                        if (updated == true && context.mounted) {
+                          context
+                              .read<TaskDetailsBloc>()
+                              .add(RefreshTaskDetails(taskId));
+                        }
+                      },
+                    ),
+                    IconButton(
+                      key: const Key('deleteTaskButton'),
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      tooltip: 'Delete Task',
+                      onPressed: () async {
+                        final confirmed = await AppConfirmDialog.show(
+                          context,
+                          title: 'Delete Task',
+                          message:
+                              'Delete "${state.task.title}"?\nThis action cannot be undone.',
+                          confirmLabel: 'Delete',
+                          cancelLabel: 'Cancel',
+                          isDestructive: true,
+                        );
+                        if (confirmed == true && context.mounted) {
+                          context
+                              .read<TaskDeleteBloc>()
+                              .add(DeleteTaskRequested(taskId));
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded),
+                      tooltip: 'Refresh',
+                      onPressed: () => context
+                          .read<TaskDetailsBloc>()
+                          .add(RefreshTaskDetails(taskId)),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -70,7 +138,7 @@ class TaskDetailsView extends StatelessWidget {
           },
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildBody(

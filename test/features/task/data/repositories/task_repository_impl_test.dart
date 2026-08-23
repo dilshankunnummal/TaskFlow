@@ -31,6 +31,10 @@ void main() {
     createdAt: '2026-08-23T00:00:00.000Z',
   );
 
+  setUpAll(() {
+    registerFallbackValue(taskModel);
+  });
+
   setUp(() {
     dataSource = MockTasksDataSource();
     localDataSource = MockTasksLocalDataSource();
@@ -73,6 +77,49 @@ void main() {
         (failure) => expect(failure, isA<NotFoundFailure>()),
         (_) => fail('Expected Left'),
       );
+    });
+  });
+
+  group('TaskRepositoryImpl.updateTask', () {
+    test('updates local task cache and returns updated Task', () async {
+      final taskToUpdate = Task(
+        id: taskId,
+        projectId: 'proj_001',
+        title: 'Updated Local Task',
+        description: 'Updated description',
+        status: TaskStatus.inProgress,
+        priority: TaskPriority.urgent,
+        assigneeId: null,
+        dueDate: null,
+        createdAt: DateTime(2026, 8, 23),
+      );
+
+      when(() => localDataSource.upsertTask(any()))
+          .thenAnswer((_) async {});
+
+      final result = await repository.updateTask(taskToUpdate);
+
+      expect(result.isRight(), isTrue);
+      result.fold(
+        (_) => fail('Expected Right'),
+        (updated) {
+          expect(updated.title, 'Updated Local Task');
+          expect(updated.status, TaskStatus.inProgress);
+        },
+      );
+      verify(() => localDataSource.upsertTask(any())).called(1);
+    });
+  });
+
+  group('TaskRepositoryImpl.deleteTask', () {
+    test('deletes task from local data source and returns Right(unit)', () async {
+      when(() => localDataSource.deleteTask(taskId))
+          .thenAnswer((_) async {});
+
+      final result = await repository.deleteTask(taskId);
+
+      expect(result, const Right(unit));
+      verify(() => localDataSource.deleteTask(taskId)).called(1);
     });
   });
 }

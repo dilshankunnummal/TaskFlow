@@ -49,10 +49,14 @@ import 'package:taskflow/features/tasks/domain/repositories/task_repository.dart
 import 'package:taskflow/features/tasks/domain/usecases/get_project_tasks_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_task_details_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/create_task_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/update_task_usecase.dart';
+import 'package:taskflow/features/tasks/domain/usecases/delete_task_usecase.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_assignees_usecase.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_details_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_list_bloc.dart';
 import 'package:taskflow/features/tasks/presentation/bloc/task_create_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_edit_bloc.dart';
+import 'package:taskflow/features/tasks/presentation/bloc/task_delete_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -370,6 +374,12 @@ Future<void> configureDependencies({Environment? environment}) async {
     );
   }
 
+  if (!getIt.isRegistered<UpdateTaskUseCase>()) {
+    getIt.registerLazySingleton<UpdateTaskUseCase>(
+          () => UpdateTaskUseCase(getIt<TaskRepository>()),
+    );
+  }
+
   if (!getIt.isRegistered<GetAssigneesUseCase>()) {
     getIt.registerLazySingleton<GetAssigneesUseCase>(
           () => GetAssigneesUseCase(getIt<TaskRepository>()),
@@ -379,6 +389,28 @@ Future<void> configureDependencies({Environment? environment}) async {
   if (!getIt.isRegistered<TaskCreateBloc>()) {
     getIt.registerFactory<TaskCreateBloc>(
           () => TaskCreateBloc(getIt<CreateTaskUseCase>(), getIt<GetAssigneesUseCase>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TaskEditBloc>()) {
+    getIt.registerFactory<TaskEditBloc>(
+          () => TaskEditBloc(
+        getIt<GetTaskDetailsUseCase>(),
+        getIt<GetAssigneesUseCase>(),
+        getIt<UpdateTaskUseCase>(),
+      ),
+    );
+  }
+
+  if (!getIt.isRegistered<DeleteTaskUseCase>()) {
+    getIt.registerLazySingleton<DeleteTaskUseCase>(
+          () => DeleteTaskUseCase(getIt<TaskRepository>()),
+    );
+  }
+
+  if (!getIt.isRegistered<TaskDeleteBloc>()) {
+    getIt.registerFactory<TaskDeleteBloc>(
+          () => TaskDeleteBloc(getIt<DeleteTaskUseCase>()),
     );
   }
 }

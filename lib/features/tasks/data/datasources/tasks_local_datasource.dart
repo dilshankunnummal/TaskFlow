@@ -14,6 +14,8 @@ abstract class TasksLocalDataSource {
   Future<void> clearCacheForProject(String projectId);
 
   Future<TaskModel?> getCachedTask(String taskId);
+
+  Future<void> deleteTask(String taskId);
 }
 
 @LazySingleton(as: TasksLocalDataSource)
@@ -84,5 +86,10 @@ class HiveTasksLocalDataSource implements TasksLocalDataSource {
     final raw = _box.get(_taskKey(taskId));
     if (raw is! Map) return null;
     return TaskModel.fromJson(Map<String, dynamic>.from(raw));
+  }
+
+  @override
+  Future<void> deleteTask(String taskId) async {
+    await _box.delete(_taskKey(taskId));
   }
 }

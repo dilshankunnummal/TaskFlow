@@ -80,10 +80,24 @@ class TaskListView extends StatelessWidget {
     }
 
     if (state is TaskListEmpty) {
-      return const EmptyStateWidget(
-        icon: Icons.task_alt_rounded,
-        title: 'No tasks yet',
-        message: 'Tasks assigned to this project will show up here.',
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<TaskListBloc>().add(RefreshTasks(projectId));
+          await context.read<TaskListBloc>().stream.firstWhere((s) =>
+              s is TaskListSuccess || s is TaskListEmpty || s is TaskListError);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            height: MediaQuery.of(context).size.height - 200,
+            alignment: Alignment.center,
+            child: const EmptyStateWidget(
+              icon: Icons.task_alt_rounded,
+              title: 'No tasks yet',
+              message: 'Tasks assigned to this project will show up here.',
+            ),
+          ),
+        ),
       );
     }
 
@@ -132,8 +146,15 @@ class TaskListView extends StatelessWidget {
                           width: itemWidth,
                           child: TaskCard(
                             task: task,
-                            onTap: () =>
-                                context.push(AppRoutes.taskDetailPath(task.id)),
+                            onTap: () async {
+                              final refreshed = await context.push<bool>(
+                                  AppRoutes.taskDetailPath(task.id));
+                              if (refreshed == true && context.mounted) {
+                                context
+                                    .read<TaskListBloc>()
+                                    .add(LoadTasks(projectId));
+                              }
+                            },
                           ),
                         ),
                     ],
