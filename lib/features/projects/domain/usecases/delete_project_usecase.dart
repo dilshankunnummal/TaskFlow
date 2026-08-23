@@ -20,7 +20,7 @@ class DeleteProjectUseCase {
 
     final role = await _session.currentUserRole;
     if (role != _orgAdminRole) {
-      return const Left(PermissionFailure());
+      return const Left(UnauthorizedFailure('Only organization admins can delete projects.'));
     }
 
     return _repository.deleteProject(projectId: projectId);

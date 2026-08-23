@@ -6,10 +6,15 @@ import 'package:taskflow/features/tasks/domain/entities/organization_member.dart
 import 'package:taskflow/features/tasks/domain/repositories/task_repository.dart';
 import 'package:taskflow/features/tasks/domain/usecases/get_organization_members_usecase.dart';
 
+import 'package:taskflow/core/auth/current_session.dart';
+
 class MockTaskRepository extends Mock implements TaskRepository {}
+
+class MockCurrentSession extends Mock implements CurrentSession {}
 
 void main() {
   late MockTaskRepository repository;
+  late MockCurrentSession session;
   late GetOrganizationMembersUseCase useCase;
 
   const orgId = 'org_a1b2c3';
@@ -22,7 +27,9 @@ void main() {
 
   setUp(() {
     repository = MockTaskRepository();
-    useCase = GetOrganizationMembersUseCase(repository);
+    session = MockCurrentSession();
+    when(() => session.currentUserRole).thenAnswer((_) async => 'org_admin');
+    useCase = GetOrganizationMembersUseCase(repository, session);
   });
 
   group('GetOrganizationMembersUseCase', () {

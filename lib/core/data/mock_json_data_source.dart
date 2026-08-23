@@ -9,7 +9,6 @@ class MockJsonDataSource {
   static const _assetPath = 'assets/mock_data/mock-data.json';
 
   Future<Map<String, dynamic>> load() async {
-    if (_cache != null) return _cache!;
     final raw = await rootBundle.loadString(_assetPath);
     _cache = jsonDecode(raw) as Map<String, dynamic>;
     return _cache!;

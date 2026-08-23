@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
+import 'package:taskflow/core/auth/current_session.dart';
 import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/core/utils/id_generator.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
@@ -7,10 +8,11 @@ import 'package:taskflow/features/projects/domain/repositories/projects_reposito
 
 @injectable
 class CreateProjectUseCase {
-  CreateProjectUseCase(this._repository, this._idGenerator);
+  CreateProjectUseCase(this._repository, this._idGenerator, this._session);
 
   final ProjectsRepository _repository;
   final IdGenerator _idGenerator;
+  final CurrentSession _session;
 
   Future<Either<Failure, Project>> call({
     required String orgId,
@@ -18,6 +20,11 @@ class CreateProjectUseCase {
     required String description,
     ProjectStatus status = ProjectStatus.planning,
   }) async {
+    final role = await _session.currentUserRole;
+    if (role != 'org_admin') {
+      return const Left(UnauthorizedFailure('Only organization admins can create projects.'));
+    }
+
     final validationFailure = _validate(
       orgId: orgId,
       name: name,

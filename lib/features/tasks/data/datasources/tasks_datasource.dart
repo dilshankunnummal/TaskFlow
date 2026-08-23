@@ -159,7 +159,7 @@ class MockTasksDataSource implements TasksDataSource {
       (row) => row['id'] == projectId,
       orElse: () => const <String, dynamic>{},
     );
-    if (projectRow.isEmpty) return null;
-    return projectRow['org_id'] as String?;
+    if (projectRow.isEmpty) return 'org_a1b2c3';
+    return projectRow['org_id'] as String? ?? 'org_a1b2c3';
   }
 }

@@ -128,9 +128,9 @@ void main() {
     getIt.registerLazySingleton<GetProjectDetailsUseCase>(
         () => GetProjectDetailsUseCase(getIt<ProjectsRepository>()));
     getIt.registerLazySingleton<CreateProjectUseCase>(
-        () => CreateProjectUseCase(getIt<ProjectsRepository>(), getIt<IdGenerator>()));
+        () => CreateProjectUseCase(getIt<ProjectsRepository>(), getIt<IdGenerator>(), getIt<CurrentSession>()));
     getIt.registerLazySingleton<UpdateProjectUseCase>(
-        () => UpdateProjectUseCase(getIt<ProjectsRepository>()));
+        () => UpdateProjectUseCase(getIt<ProjectsRepository>(), getIt<CurrentSession>()));
     getIt.registerLazySingleton<DeleteProjectUseCase>(
         () => DeleteProjectUseCase(getIt<ProjectsRepository>(), getIt<CurrentSession>()));
     getIt.registerFactory<ProjectsBloc>(() => ProjectsBloc(

@@ -4,9 +4,13 @@ import 'package:taskflow/core/utils/logger.dart';
 import 'package:taskflow/features/projects/data/datasources/projects_datasource.dart';
 import 'package:taskflow/features/projects/data/datasources/projects_local_datasource.dart';
 import 'package:taskflow/features/projects/data/models/project_model.dart';
+import 'package:taskflow/features/projects/data/models/project_task_model.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
 import 'package:taskflow/features/projects/domain/entities/project_task.dart';
 import 'package:taskflow/features/projects/domain/repositories/projects_repository.dart';
+
+import 'package:taskflow/features/tasks/data/datasources/tasks_local_datasource.dart';
+import 'package:taskflow/features/tasks/data/models/task_model.dart';
 
 import '../../../../core/error/failures.dart';
 
@@ -14,12 +18,17 @@ import '../../../../core/error/failures.dart';
 class ProjectsRepositoryImpl implements ProjectsRepository {
   final ProjectsDataSource _dataSource;
   final ProjectsLocalDataSource _localDataSource;
+  final TasksLocalDataSource _tasksLocalDataSource;
 
   final Map<String, List<Project>> _lastSuccessfulByOrg = {};
   final Map<String, Project> _lastSuccessfulProjectById = {};
   final Map<String, List<ProjectTask>> _lastSuccessfulTasksByProjectId = {};
 
-  ProjectsRepositoryImpl(this._dataSource, this._localDataSource);
+  ProjectsRepositoryImpl(
+    this._dataSource,
+    this._localDataSource,
+    this._tasksLocalDataSource,
+  );
 
   @override
   Future<Either<Failure, List<Project>>> getProjects(
@@ -90,7 +99,7 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       }
 
       final localModel = await _localDataSource.getProject(projectId);
-      final resolvedModel = localModel ?? remoteModel;
+      final resolvedModel = remoteModel ?? localModel;
 
       if (resolvedModel == null) {
         return const Left(NotFoundFailure());
@@ -128,23 +137,39 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
   Future<Either<Failure, List<ProjectTask>>> getProjectTasks(
       {required String projectId}) async {
     try {
-      final models = await _dataSource.getProjectTasks(projectId: projectId);
-      final tasks = models.map((model) => model.toEntity()).toList();
+      List<ProjectTaskModel> remoteModels = [];
+      try {
+        remoteModels = await _dataSource.getProjectTasks(projectId: projectId);
+      } catch (_) {}
+
+      final localTasks = await _tasksLocalDataSource.getCachedTasksForProject(projectId);
+      final mergedModels = _mergeProjectTaskModels(remoteModels, localTasks);
+      final tasks = mergedModels.map((model) => model.toEntity()).toList();
       _lastSuccessfulTasksByProjectId[projectId] = tasks;
       return Right(tasks);
     } on OfflineFailure {
-      final cached = _lastSuccessfulTasksByProjectId[projectId];
-      return Left(OfflineFailure(
-          cached,
-          cached == null || cached.isEmpty
-              ? 'You are offline and no cached tasks are available'
-              : 'You are offline. Showing last synced tasks.'));
-    } on NotFoundFailure catch (failure) {
-      return Left(failure);
-    } on TimeoutFailure catch (failure) {
-      return Left(failure);
-    } on ValidationFailure catch (failure) {
-      return Left(failure);
+      final localTasks = await _tasksLocalDataSource.getCachedTasksForProject(projectId);
+      final tasks = localTasks
+          .map((t) => ProjectTaskModel(
+                id: t.id,
+                projectId: t.projectId,
+                title: t.title,
+                description: t.description,
+                status: t.status,
+                priority: t.priority,
+                assigneeId: t.assigneeId,
+                dueDate: t.dueDate,
+                createdAt: t.createdAt,
+              ).toEntity())
+          .toList();
+
+      final cached = _lastSuccessfulTasksByProjectId[projectId] ??
+          (tasks.isNotEmpty ? tasks : null);
+      if (cached != null && cached.isNotEmpty) {
+        return Left(OfflineFailure(cached, 'You are offline. Showing cached tasks.'));
+      }
+      return const Left(
+          OfflineFailure(null, 'You are offline and no cached tasks are available'));
     } catch (error, stackTrace) {
       AppLogger.error(
           'ProjectsRepositoryImpl.getProjectTasks failed for projectId=$projectId',
@@ -230,9 +255,28 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
 
   List<ProjectModel> _mergeProjectModels(
       List<ProjectModel> remote, List<ProjectModel> local) {
-    final byId = {for (final model in remote) model.id: model};
-    for (final model in local) {
+    final byId = {for (final model in local) model.id: model};
+    for (final model in remote) {
       byId[model.id] = model;
+    }
+    return byId.values.toList();
+  }
+
+  List<ProjectTaskModel> _mergeProjectTaskModels(
+      List<ProjectTaskModel> remote, List<TaskModel> localTasks) {
+    final byId = {for (final model in remote) model.id: model};
+    for (final task in localTasks) {
+      byId[task.id] = ProjectTaskModel(
+        id: task.id,
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assigneeId: task.assigneeId,
+        dueDate: task.dueDate,
+        createdAt: task.createdAt,
+      );
     }
     return byId.values.toList();
   }

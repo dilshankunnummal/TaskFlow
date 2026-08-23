@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:taskflow/core/auth/current_session.dart';
 import 'package:taskflow/core/constants/app_strings.dart';
 import 'package:taskflow/core/di/injection.dart';
 import 'package:taskflow/core/router/app_routes.dart';
@@ -321,28 +322,36 @@ class _CreateProjectFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return FutureBuilder<String?>(
+      future: getIt<CurrentSession>().currentUserRole,
+      builder: (context, snapshot) {
+        if (snapshot.data != 'org_admin') {
+          return const SizedBox.shrink();
+        }
+        final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 90),
-      child: GlassContainer(
-        borderRadius: AppRadius.pillRadius,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: 56,
-              height: 56,
-              child: Icon(
-                Icons.add_rounded,
-                color: colorScheme.primary,
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 90),
+          child: GlassContainer(
+            borderRadius: AppRadius.pillRadius,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onPressed,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: colorScheme.primary,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

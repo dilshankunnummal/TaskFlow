@@ -5,17 +5,24 @@ import 'package:taskflow/core/error/failures.dart';
 import 'package:taskflow/features/tasks/domain/repositories/task_repository.dart';
 import 'package:taskflow/features/tasks/domain/usecases/delete_task_usecase.dart';
 
+import 'package:taskflow/core/auth/current_session.dart';
+
 class MockTaskRepository extends Mock implements TaskRepository {}
+
+class MockCurrentSession extends Mock implements CurrentSession {}
 
 void main() {
   late MockTaskRepository repository;
+  late MockCurrentSession session;
   late DeleteTaskUseCase useCase;
 
   const taskId = 'task_001';
 
   setUp(() {
     repository = MockTaskRepository();
-    useCase = DeleteTaskUseCase(repository);
+    session = MockCurrentSession();
+    when(() => session.currentUserRole).thenAnswer((_) async => 'org_admin');
+    useCase = DeleteTaskUseCase(repository, session);
   });
 
   group('DeleteTaskUseCase', () {

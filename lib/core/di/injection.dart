@@ -262,6 +262,7 @@ Future<void> configureDependencies({Environment? environment}) async {
           () => ProjectsRepositoryImpl(
         getIt<ProjectsDataSource>(),
         getIt<ProjectsLocalDataSource>(),
+        getIt<TasksLocalDataSource>(),
       ),
     );
   }
@@ -279,13 +280,13 @@ Future<void> configureDependencies({Environment? environment}) async {
   if (!getIt.isRegistered<CreateProjectUseCase>()) {
     getIt.registerLazySingleton<CreateProjectUseCase>(
           () => CreateProjectUseCase(
-          getIt<ProjectsRepository>(), getIt<IdGenerator>()),
+          getIt<ProjectsRepository>(), getIt<IdGenerator>(), getIt<CurrentSession>()),
     );
   }
 
   if (!getIt.isRegistered<UpdateProjectUseCase>()) {
     getIt.registerLazySingleton<UpdateProjectUseCase>(
-            () => UpdateProjectUseCase(getIt<ProjectsRepository>()));
+            () => UpdateProjectUseCase(getIt<ProjectsRepository>(), getIt<CurrentSession>()));
   }
 
   if (!getIt.isRegistered<DeleteProjectUseCase>()) {
@@ -420,7 +421,7 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<DeleteTaskUseCase>()) {
     getIt.registerLazySingleton<DeleteTaskUseCase>(
-          () => DeleteTaskUseCase(getIt<TaskRepository>()),
+          () => DeleteTaskUseCase(getIt<TaskRepository>(), getIt<CurrentSession>()),
     );
   }
 
@@ -432,7 +433,7 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<GetOrganizationMembersUseCase>()) {
     getIt.registerLazySingleton<GetOrganizationMembersUseCase>(
-          () => GetOrganizationMembersUseCase(getIt<TaskRepository>()),
+          () => GetOrganizationMembersUseCase(getIt<TaskRepository>(), getIt<CurrentSession>()),
     );
   }
 

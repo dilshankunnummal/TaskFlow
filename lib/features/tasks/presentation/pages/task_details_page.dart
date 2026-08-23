@@ -80,7 +80,7 @@ class TaskDetailsView extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Task assignee updated')),
       );
-      context.read<TaskDetailsBloc>().add(RefreshTaskDetails(taskId));
+      context.read<TaskDetailsBloc>().add(LoadTaskDetails(taskId));
     } else if (state is TaskAssignmentError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.message)),

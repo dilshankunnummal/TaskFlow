@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:taskflow/core/auth/current_session.dart';
 import 'package:taskflow/core/constants/app_strings.dart';
 import 'package:taskflow/core/di/injection.dart';
 import 'package:taskflow/core/router/app_routes.dart';
@@ -11,6 +12,7 @@ import 'package:taskflow/core/widgets/empty_state_widget.dart';
 import 'package:taskflow/core/widgets/error_state_widget.dart';
 import 'package:taskflow/core/widgets/skeleton_loader.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
+import 'package:taskflow/features/projects/domain/entities/project_task.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_bloc.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_event.dart';
 import 'package:taskflow/features/projects/presentation/bloc/project_details_state.dart';
@@ -87,6 +89,7 @@ final class ProjectDetailsView extends StatelessWidget {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(state.message)));
+      context.read<ProjectDetailsBloc>().add(LoadProjectDetails(projectId));
     }
   }
 
@@ -98,31 +101,39 @@ final class ProjectDetailsView extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Project'),
           actions: [
-            BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
-              builder: (context, state) {
-                final project = switch (state) {
-                  ProjectDetailsSuccess(:final project) => project,
-                  ProjectDetailsEmpty(:final project) => project,
-                  _ => null,
-                };
-                if (project == null) {
+            FutureBuilder<String?>(
+              future: getIt<CurrentSession>().currentUserRole,
+              builder: (context, snapshot) {
+                if (snapshot.data != 'org_admin') {
                   return const SizedBox.shrink();
                 }
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Edit project',
-                      onPressed: () => _handleEdit(context, project),
-                    ),
-                    IconButton(
-                      key: const Key('deleteProjectAction'),
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      tooltip: 'Delete project',
-                      onPressed: () => _handleDelete(context, project),
-                    ),
-                  ],
+                return BlocBuilder<ProjectDetailsBloc, ProjectDetailsState>(
+                  builder: (context, state) {
+                    final project = switch (state) {
+                      ProjectDetailsSuccess(:final project) => project,
+                      ProjectDetailsEmpty(:final project) => project,
+                      _ => null,
+                    };
+                    if (project == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Edit project',
+                          onPressed: () => _handleEdit(context, project),
+                        ),
+                        IconButton(
+                          key: const Key('deleteProjectAction'),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          tooltip: 'Delete project',
+                          onPressed: () => _handleDelete(context, project),
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             ),
@@ -138,7 +149,11 @@ final class ProjectDetailsView extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context, ProjectDetailsState state) {
-    if (state is ProjectDetailsInitial || state is ProjectDetailsLoading) {
+    if (state is ProjectDetailsInitial ||
+        state is ProjectDetailsLoading ||
+        state is ProjectDetailsDeleteInProgress ||
+        state is ProjectDetailsDeleteSuccess ||
+        state is ProjectDetailsDeleteFailure) {
       return const _ProjectDetailsSkeleton();
     }
 
@@ -169,21 +184,6 @@ final class ProjectDetailsView extends StatelessWidget {
                 Expanded(
                   child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
                 ),
-                IconButton(
-                  key: const Key('createTaskActionEmpty'),
-                  icon: const Icon(Icons.add_task_rounded),
-                  tooltip: 'Create task',
-                  onPressed: () async {
-                    final created = await context.push<bool>(
-                      AppRoutes.createTaskPath(projectId),
-                    );
-                    if (created == true && context.mounted) {
-                      context.read<ProjectDetailsBloc>().add(
-                            RefreshProjectDetails(projectId),
-                          );
-                    }
-                  },
-                ),
                 TextButton(
                   onPressed: () => _handleViewTasks(context),
                   child: const Text('View Tasks'),
@@ -208,7 +208,11 @@ final class ProjectDetailsView extends StatelessWidget {
       );
     }
 
-    final success = state as ProjectDetailsSuccess;
+    if (state is! ProjectDetailsSuccess) {
+      return const _ProjectDetailsSkeleton();
+    }
+
+    final success = state;
 
     return RefreshIndicator(
       onRefresh: () => _handleRefresh(context),
@@ -219,6 +223,10 @@ final class ProjectDetailsView extends StatelessWidget {
           const spacing = AppSpacing.lg;
           final itemWidth =
           columns == 1 ? constraints.maxWidth : (constraints.maxWidth - spacing) / columns;
+
+          final sortedTasks = List<ProjectTask>.from(success.tasks)
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final displayedTasks = sortedTasks.take(5).toList();
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -241,21 +249,6 @@ final class ProjectDetailsView extends StatelessWidget {
                     Expanded(
                       child: Text('Tasks', style: Theme.of(context).textTheme.titleLarge),
                     ),
-                    // IconButton(
-                    //   key: const Key('createTaskActionSuccess'),
-                    //   icon: const Icon(Icons.add_task_rounded),
-                    //   tooltip: 'Create task',
-                    //   onPressed: () async {
-                    //     final created = await context.push<bool>(
-                    //       AppRoutes.createTaskPath(projectId),
-                    //     );
-                    //     if (created == true && context.mounted) {
-                    //       context.read<ProjectDetailsBloc>().add(
-                    //             RefreshProjectDetails(projectId),
-                    //           );
-                    //     }
-                    //   },
-                    // ),
                     TextButton(
                       onPressed: () => _handleViewTasks(context),
                       child: const Text('View Tasks'),
@@ -267,7 +260,7 @@ final class ProjectDetailsView extends StatelessWidget {
                   spacing: spacing,
                   runSpacing: spacing,
                   children: [
-                    for (final task in success.tasks)
+                    for (final task in displayedTasks)
                       SizedBox(
                         width: itemWidth,
                         child: ProjectTaskPreviewCard(task: task),
