@@ -13,10 +13,13 @@ import 'package:taskflow/features/auth/data/repositories/auth_repository_impl.da
 import 'package:taskflow/features/auth/data/services/token_refresh_service.dart';
 import 'package:taskflow/features/auth/data/services/token_refresh_service_impl.dart';
 import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
+import 'package:taskflow/features/auth/domain/usecases/check_session_usecase.dart';
 import 'package:taskflow/features/auth/domain/usecases/login_usecase.dart';
+import 'package:taskflow/features/auth/domain/usecases/refresh_token_usecase.dart';
 import 'package:taskflow/features/auth/domain/usecases/register_usecase.dart';
 import 'package:taskflow/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:taskflow/features/auth/presentation/bloc/register_bloc.dart';
+import 'package:taskflow/features/auth/presentation/bloc/splash_bloc.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -72,11 +75,12 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<AuthLocalDataSource>()) {
     getIt.registerLazySingleton<AuthLocalDataSource>(
-      () => AuthLocalDataSourceImpl(
+          () => AuthLocalDataSourceImpl(
         getIt<FlutterSecureStorage>(),
         getIt<MockJsonLoader>(),
         getIt<SimulatedNetwork>(),
         getIt<IdGenerator>(),
+        getIt<TokenRefreshService>(),
       ),
     );
   }
@@ -88,7 +92,13 @@ Future<void> configureDependencies({Environment? environment}) async {
   }
 
   if (!getIt.isRegistered<TokenRefreshService>()) {
-    getIt.registerLazySingleton<TokenRefreshService>(TokenRefreshServiceImpl.new);
+    getIt.registerLazySingleton<TokenRefreshService>(
+          () => TokenRefreshServiceImpl(
+        getIt<SimulatedNetwork>(),
+        getIt<MockJsonLoader>(),
+        getIt<IdGenerator>(),
+      ),
+    );
   }
 
   if (!getIt.isRegistered<LoginUseCase>()) {
@@ -105,6 +115,20 @@ Future<void> configureDependencies({Environment? environment}) async {
 
   if (!getIt.isRegistered<RegisterBloc>()) {
     getIt.registerFactory<RegisterBloc>(() => RegisterBloc(getIt<RegisterUseCase>()));
+  }
+
+  if (!getIt.isRegistered<CheckSessionUseCase>()) {
+    getIt.registerLazySingleton<CheckSessionUseCase>(() => CheckSessionUseCase(getIt<AuthRepository>()));
+  }
+
+  if (!getIt.isRegistered<RefreshTokenUseCase>()) {
+    getIt.registerLazySingleton<RefreshTokenUseCase>(() => RefreshTokenUseCase(getIt<AuthRepository>()));
+  }
+
+  if (!getIt.isRegistered<SplashBloc>()) {
+    getIt.registerFactory<SplashBloc>(
+          () => SplashBloc(getIt<CheckSessionUseCase>(), getIt<RefreshTokenUseCase>()),
+    );
   }
 }
 

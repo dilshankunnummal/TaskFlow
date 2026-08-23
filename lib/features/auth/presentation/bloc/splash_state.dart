@@ -23,8 +23,8 @@ final class Unauthenticated extends SplashState {
   const Unauthenticated();
 }
 
-final class SplashFailure extends SplashState {
-  const SplashFailure(this.message);
+final class SplashError extends SplashState {
+  const SplashError(this.message);
 
   final String message;
 

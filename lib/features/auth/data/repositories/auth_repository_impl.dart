@@ -3,6 +3,7 @@ import 'package:taskflow/features/auth/data/datasources/auth_local_datasource.da
 import 'package:taskflow/features/auth/data/models/login_request.dart';
 import 'package:taskflow/features/auth/data/models/session_model.dart';
 import 'package:taskflow/features/auth/domain/entities/register_request.dart';
+import 'package:taskflow/features/auth/domain/entities/session_status.dart';
 import 'package:taskflow/features/auth/domain/entities/user_entity.dart';
 import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
 
@@ -59,5 +60,15 @@ final class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<void>> register(RegisterRequest request) {
     return Result.guard(() => _localDataSource.register(request));
+  }
+
+  @override
+  Future<Result<SessionStatus>> getSessionStatus() {
+    return Result.guard(() => _localDataSource.getSessionStatus());
+  }
+
+  @override
+  Future<Result<void>> refreshSession() {
+    return Result.guard(() => _localDataSource.refreshSession());
   }
 }

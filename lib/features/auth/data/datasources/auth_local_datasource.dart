@@ -9,6 +9,9 @@ import 'package:taskflow/features/auth/data/models/login_response.dart';
 import 'package:taskflow/features/auth/data/models/session_model.dart';
 import 'package:taskflow/features/auth/data/models/user_model.dart';
 import 'package:taskflow/features/auth/domain/entities/register_request.dart';
+import 'package:taskflow/features/auth/data/models/refreshed_tokens.dart';
+import 'package:taskflow/features/auth/data/services/token_refresh_service.dart';
+import 'package:taskflow/features/auth/domain/entities/session_status.dart';
 
 abstract interface class AuthLocalDataSource {
   Future<bool> hasValidSession();
@@ -22,6 +25,10 @@ abstract interface class AuthLocalDataSource {
   Future<UserModel?> getCurrentUser();
 
   Future<void> register(RegisterRequest request);
+
+  Future<SessionStatus> getSessionStatus();
+
+  Future<void> refreshSession();
 }
 
 final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -30,12 +37,14 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     this._mockJsonLoader,
     this._simulatedNetwork,
     this._idGenerator,
+    this._tokenRefreshService,
   );
 
   final FlutterSecureStorage _secureStorage;
   final MockJsonLoader _mockJsonLoader;
   final SimulatedNetwork _simulatedNetwork;
   final IdGenerator _idGenerator;
+  final TokenRefreshService _tokenRefreshService;
 
   @override
   Future<bool> hasValidSession() async {
@@ -198,5 +207,64 @@ final class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     if (normalizedEmail == _duplicateRegistrationEmail) {
       throw const ValidationException('Email already registered');
     }
+  }
+
+  @override
+  Future<SessionStatus> getSessionStatus() async {
+    try {
+      final accessToken = await _secureStorage.read(key: SecureStorageKeys.accessToken);
+      if (accessToken == null || accessToken.isEmpty) {
+        return SessionStatus.none;
+      }
+
+      final expiresAtRaw = await _secureStorage.read(key: SecureStorageKeys.accessTokenExpiresAt);
+      final expiresAt = expiresAtRaw != null ? DateTime.tryParse(expiresAtRaw) : null;
+      if (expiresAt == null) {
+        return SessionStatus.valid;
+      }
+
+      return DateTime.now().isBefore(expiresAt) ? SessionStatus.valid : SessionStatus.expired;
+    } catch (_) {
+      throw const CacheException('Unable to read the authentication session.');
+    }
+  }
+
+  @override
+  Future<void> refreshSession() async {
+    final storedRefreshToken = await _secureStorage.read(key: SecureStorageKeys.refreshToken);
+    final userId = await _secureStorage.read(key: SecureStorageKeys.currentUserId) ?? '';
+    final orgId = await _secureStorage.read(key: SecureStorageKeys.currentOrgId) ?? '';
+    final role = await _secureStorage.read(key: SecureStorageKeys.currentUserRole) ?? '';
+    final loginTimestampRaw = await _secureStorage.read(key: SecureStorageKeys.loginTimestamp);
+    final loginTimestamp = loginTimestampRaw != null
+        ? DateTime.tryParse(loginTimestampRaw) ?? DateTime.now()
+        : DateTime.now();
+
+    if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
+      await clearSession();
+      throw const AuthException('No refresh token available.');
+    }
+
+    final refreshResult = await _tokenRefreshService.refresh(storedRefreshToken);
+
+    if (refreshResult.isFailure) {
+      await clearSession();
+      throw AuthException(refreshResult.failureOrNull?.message ?? 'Unable to refresh the session.');
+    }
+
+    final refreshedTokens = refreshResult.valueOrNull as RefreshedTokens;
+    final refreshedAt = DateTime.now();
+
+    await persistSession(
+      SessionModel(
+        accessToken: refreshedTokens.accessToken,
+        refreshToken: refreshedTokens.refreshToken,
+        accessTokenExpiresAt: refreshedAt.add(Duration(seconds: refreshedTokens.expiresInSeconds)),
+        userId: userId,
+        orgId: orgId,
+        role: role,
+        loginTimestamp: loginTimestamp,
+      ),
+    );
   }
 }

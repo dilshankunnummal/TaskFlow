@@ -9,7 +9,8 @@ import 'package:taskflow/core/theme/app_motion.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/error/app_error_state.dart';
 import 'package:taskflow/core/widgets/loading/app_loading_indicator.dart';
-import 'package:taskflow/features/auth/domain/repositories/auth_repository.dart';
+import 'package:taskflow/features/auth/domain/usecases/check_session_usecase.dart';
+import 'package:taskflow/features/auth/domain/usecases/refresh_token_usecase.dart';
 import 'package:taskflow/features/auth/presentation/bloc/splash_bloc.dart';
 import 'package:taskflow/features/auth/presentation/bloc/splash_event.dart';
 import 'package:taskflow/features/auth/presentation/bloc/splash_state.dart';
@@ -20,7 +21,10 @@ final class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<SplashBloc>(
-      create: (_) => SplashBloc(getIt<AuthRepository>())..add(const CheckAuthenticationStatus()),
+      create: (_) => SplashBloc(
+        getIt<CheckSessionUseCase>(),
+        getIt<RefreshTokenUseCase>(),
+      )..add(const CheckAuthenticationStatus()),
       child: const _SplashView(),
     );
   }
@@ -33,13 +37,16 @@ final class _SplashView extends StatefulWidget {
   State<_SplashView> createState() => _SplashViewState();
 }
 
-final class _SplashViewState extends State<_SplashView> with SingleTickerProviderStateMixin {
+final class _SplashViewState extends State<_SplashView>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: AppMotion.page,
   );
-  late final Animation<double> _fade = CurvedAnimation(parent: _controller, curve: AppMotion.curve);
-  late final Animation<double> _scale = Tween<double>(begin: 0.9, end: 1).animate(
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _controller, curve: AppMotion.curve);
+  late final Animation<double> _scale =
+      Tween<double>(begin: 0.9, end: 1).animate(
     CurvedAnimation(parent: _controller, curve: AppMotion.curve),
   );
 
@@ -63,7 +70,7 @@ final class _SplashViewState extends State<_SplashView> with SingleTickerProvide
         context.go(AppRoutes.login);
       case SplashInitial():
       case SplashLoading():
-      case SplashFailure():
+      case SplashError():
         break;
     }
   }
@@ -77,7 +84,9 @@ final class _SplashViewState extends State<_SplashView> with SingleTickerProvide
       child: Scaffold(
         body: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: isDark ? AppColors.backgroundWashDark : AppColors.backgroundWashLight,
+            gradient: isDark
+                ? AppColors.backgroundWashDark
+                : AppColors.backgroundWashLight,
           ),
           child: SafeArea(
             child: Center(
@@ -100,13 +109,14 @@ final class _SplashViewState extends State<_SplashView> with SingleTickerProvide
                         BlocBuilder<SplashBloc, SplashState>(
                           builder: (context, state) {
                             return switch (state) {
-                              SplashFailure(:final message) => AppErrorState(
+                              SplashError(:final message) => AppErrorState(
                                   message: message,
                                   onRetry: () => context
                                       .read<SplashBloc>()
                                       .add(const CheckAuthenticationStatus()),
                                 ),
-                              _ => AppLoadingIndicator(message: AppStrings.splashLoadingText),
+                              _ => AppLoadingIndicator(
+                                  message: AppStrings.splashLoadingText),
                             };
                           },
                         ),
