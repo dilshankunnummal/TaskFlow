@@ -98,11 +98,25 @@ class _TaskFormState extends State<TaskForm> {
 
   Future<void> _selectDate(BuildContext context) async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDate = DateTime(now.year + 5);
+
+    // If the task already has a past due date, allow navigating to it.
+    // firstDate must be <= initialDate <= lastDate (Flutter assertion).
+    final firstDate = _dueDate != null && _dueDate!.isBefore(today)
+        ? DateTime(_dueDate!.year, _dueDate!.month, _dueDate!.day)
+        : today;
+
+    // Clamp initialDate so it's always within [firstDate, lastDate].
+    final initialDate = _dueDate != null
+        ? (_dueDate!.isBefore(firstDate) ? firstDate : _dueDate!)
+        : today;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? now,
-      firstDate: now,
-      lastDate: DateTime(now.year + 5),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked != null) {
       setState(() {

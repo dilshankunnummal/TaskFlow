@@ -27,6 +27,7 @@ class ProjectDetailsBloc extends Bloc<ProjectDetailsEvent, ProjectDetailsState> 
   }
 
   Future<void> _onRefreshProjectDetails(RefreshProjectDetails event, Emitter<ProjectDetailsState> emit) async {
+    emit(const ProjectDetailsLoading());
     await _fetchAndEmit(event.projectId, emit);
   }
 

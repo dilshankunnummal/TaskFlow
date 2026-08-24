@@ -4,6 +4,7 @@ import 'package:taskflow/core/di/injection.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/error/app_error_state.dart';
 import 'package:taskflow/core/widgets/loading/app_skeleton_loader.dart';
+import 'package:taskflow/core/widgets/skeleton_loader.dart';
 import 'package:taskflow/features/home/domain/entities/dashboard_data.dart';
 import 'package:taskflow/features/home/presentation/bloc/dashboard_bloc.dart';
 import 'package:taskflow/features/home/presentation/bloc/dashboard_event.dart';
@@ -69,7 +70,7 @@ final class _DashboardView extends StatelessWidget {
                       top: 0,
                       left: 0,
                       right: 0,
-                      child: LinearProgressIndicator(minHeight: 2),
+                      child: SkeletonBox(height: 2, radius: BorderRadius.zero),
                     ),
                 ],
               ),

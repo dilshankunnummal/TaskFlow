@@ -80,7 +80,9 @@ class TaskDetailsView extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Task assignee updated')),
       );
-      context.read<TaskDetailsBloc>().add(LoadTaskDetails(taskId));
+      // Use Refresh (not Load) so the page shows a subtle reload without
+      // flashing back to the full skeleton loading state.
+      context.read<TaskDetailsBloc>().add(RefreshTaskDetails(taskId));
     } else if (state is TaskAssignmentError) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(state.message)),
@@ -708,7 +710,36 @@ class _AssignUserModalContentState extends State<_AssignUserModalContent> {
               builder: (context, state) {
                 if (state is TaskAssignmentLoading ||
                     state is TaskAssignmentInitial) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListView.separated(
+                    itemCount: 5,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (_, __) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+                      child: Row(
+                        children: [
+                          SkeletonBox(
+                            height: 36,
+                            width: 36,
+                            radius: const BorderRadius.all(
+                                Radius.circular(999)),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SkeletonBox(height: 13, width: 120),
+                                const SizedBox(height: AppSpacing.xs),
+                                SkeletonBox(height: 11, width: 180),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
 
                 if (state is TaskAssignmentError) {

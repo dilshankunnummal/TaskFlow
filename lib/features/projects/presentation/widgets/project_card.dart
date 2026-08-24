@@ -4,6 +4,7 @@ import 'package:taskflow/core/theme/app_colors.dart';
 import 'package:taskflow/core/theme/app_radius.dart';
 import 'package:taskflow/core/theme/app_spacing.dart';
 import 'package:taskflow/core/widgets/cards/app_card.dart';
+import 'package:taskflow/core/widgets/skeleton_loader.dart';
 import 'package:taskflow/features/projects/domain/entities/project.dart';
 
 class ProjectCard extends StatelessWidget {
@@ -48,6 +49,21 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // While deleting, swap the entire card for an animated skeleton so the
+    // user sees a shimmer placeholder instead of a spinner over blurred content.
+    if (isDeleting) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: AppRadius.cardRadius,
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(0.08),
+          ),
+        ),
+        child: const ProjectCardSkeleton(),
+      );
+    }
+
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
@@ -56,90 +72,65 @@ class ProjectCard extends StatelessWidget {
       _statusKey(project.status),
     );
 
-    return Stack(
-      children: [
-        AppCard(
-          onTap: isDeleting ? null : onTap,
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Opacity(
-            opacity: isDeleting ? 0.5 : 1,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        project.name,
-                        style: textTheme.titleSmall,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _StatusBadge(
-                      label: _statusLabel(project.status),
-                      color: statusColor,
-                    ),
-                    if (onDeleteRequested != null) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      _ProjectCardMenu(
-                        enabled: !isDeleting,
-                        onDelete: onDeleteRequested!,
-                      ),
-                    ],
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.xs),
-
-                Text(
-                  project.description,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  project.name,
+                  style: textTheme.titleSmall,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-
-                const SizedBox(height: AppSpacing.sm),
-
-                Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _InfoItem(
-                      icon: Icons.checklist_rounded,
-                      text: '${project.taskCount} tasks',
-                    ),
-                    _InfoItem(
-                      icon: Icons.schedule_rounded,
-                      text: DateFormat.yMMMd().format(project.createdAt),
-                    ),
-                  ],
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _StatusBadge(
+                label: _statusLabel(project.status),
+                color: statusColor,
+              ),
+              if (onDeleteRequested != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                _ProjectCardMenu(
+                  enabled: true,
+                  onDelete: onDeleteRequested!,
                 ),
               ],
-            ),
+            ],
           ),
-        ),
-        if (isDeleting)
-          Positioned.fill(
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: colorScheme.error,
-                ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            project.description,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.md,
+            runSpacing: AppSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _InfoItem(
+                icon: Icons.checklist_rounded,
+                text: '${project.taskCount} tasks',
               ),
-            ),
+              _InfoItem(
+                icon: Icons.schedule_rounded,
+                text: DateFormat.yMMMd().format(project.createdAt),
+              ),
+            ],
           ),
-      ],
+        ],
+      ),
     );
   }
 }

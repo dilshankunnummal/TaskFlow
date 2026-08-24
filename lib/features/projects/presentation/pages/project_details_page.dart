@@ -78,8 +78,11 @@ final class ProjectDetailsView extends StatelessWidget {
     );
   }
 
-  void _handleViewTasks(BuildContext context) {
-    context.push(AppRoutes.projectTasksPath(projectId));
+  Future<void> _handleViewTasks(BuildContext context) async {
+    final didMutate = await context.push<bool>(AppRoutes.projectTasksPath(projectId));
+    if (didMutate == true && context.mounted) {
+      context.read<ProjectDetailsBloc>().add(RefreshProjectDetails(projectId));
+    }
   }
 
   void _handleStateListener(BuildContext context, ProjectDetailsState state) {

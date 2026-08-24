@@ -143,7 +143,11 @@ class TaskRepositoryImpl implements TaskRepository {
       final cachedTask = await _localDataSource.getCachedTask(taskId);
       final detailsModel = await _dataSource.getTaskDetails(taskId: taskId);
       if (cachedTask != null) {
-        TaskAssignee? assignee = detailsModel.assignee?.toEntity();
+        // Always derive the assignee from the LOCAL cache, not the remote JSON.
+        // The remote detailsModel still holds the original mock-data assignee_id
+        // even after a local assign/unassign — using it would silently revert
+        // any local change.  Starting from null means an unassign is honoured.
+        TaskAssignee? assignee;
         if (cachedTask.assigneeId != null) {
           final assigneesResult = await getAssignees();
           assigneesResult.fold(

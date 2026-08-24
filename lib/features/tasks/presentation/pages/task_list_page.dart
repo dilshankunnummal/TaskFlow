@@ -30,10 +30,19 @@ class TaskListPage extends StatelessWidget {
   }
 }
 
-class TaskListView extends StatelessWidget {
+class TaskListView extends StatefulWidget {
   const TaskListView({required this.projectId, super.key});
 
   final String projectId;
+
+  @override
+  State<TaskListView> createState() => _TaskListViewState();
+}
+
+class _TaskListViewState extends State<TaskListView> {
+  /// Set to true whenever a task is created, edited, or deleted so that
+  /// [ProjectDetailsPage] knows it should refresh on pop.
+  bool _didMutate = false;
 
   int _columnsForWidth(double width) {
     if (AppBreakpoints.isDesktop(width)) return 3;
@@ -45,31 +54,45 @@ class TaskListView extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tasks')),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = _columnsForWidth(constraints.maxWidth);
-            return BlocBuilder<TaskListBloc, TaskListState>(
-              builder: (context, state) =>
-                  _buildBody(context, state, columns, textTheme),
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.pop(_didMutate);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Tasks'),
+          leading: BackButton(
+            onPressed: () => context.pop(_didMutate),
+          ),
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = _columnsForWidth(constraints.maxWidth);
+              return BlocBuilder<TaskListBloc, TaskListState>(
+                builder: (context, state) =>
+                    _buildBody(context, state, columns, textTheme),
+              );
+            },
+          ),
+        ),
+        floatingActionButton: _CreateTaskFab(
+          onPressed: () async {
+            final created = await context.push<bool>(
+              AppRoutes.createTaskPath(widget.projectId),
             );
+
+            if (created == true && context.mounted) {
+              _didMutate = true;
+              context.read<TaskListBloc>().add(RefreshTasks(widget.projectId));
+            }
           },
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
-      floatingActionButton: _CreateTaskFab(
-        onPressed: () async {
-          final refreshed = await context.push<bool>(
-            AppRoutes.createTaskPath(projectId),
-          );
-
-          if (refreshed == true && context.mounted) {
-            context.read<TaskListBloc>().add(RefreshTasks(projectId));
-          }
-        },
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -90,7 +113,7 @@ class TaskListView extends StatelessWidget {
                 s is TaskListError,
             orElse: () => bloc.state,
           );
-          bloc.add(RefreshTasks(projectId));
+          bloc.add(RefreshTasks(widget.projectId));
           await future.timeout(const Duration(seconds: 3),
               onTimeout: () => bloc.state);
         },
@@ -112,7 +135,7 @@ class TaskListView extends StatelessWidget {
     if (state is TaskListError) {
       return ErrorStateWidget(
         message: state.message,
-        onRetry: () => context.read<TaskListBloc>().add(LoadTasks(projectId)),
+        onRetry: () => context.read<TaskListBloc>().add(LoadTasks(widget.projectId)),
       );
     }
 
@@ -135,7 +158,7 @@ class TaskListView extends StatelessWidget {
               s is TaskListError,
           orElse: () => bloc.state,
         );
-        bloc.add(RefreshTasks(projectId));
+        bloc.add(RefreshTasks(widget.projectId));
         await future.timeout(const Duration(seconds: 3),
             onTimeout: () => bloc.state);
       },
@@ -163,12 +186,13 @@ class TaskListView extends StatelessWidget {
                           child: TaskCard(
                             task: task,
                             onTap: () async {
-                              final refreshed = await context.push<bool>(
+                              final mutated = await context.push<bool>(
                                   AppRoutes.taskDetailPath(task.id));
-                              if (refreshed == true && context.mounted) {
+                              if (mutated == true && context.mounted) {
+                                _didMutate = true;
                                 context
                                     .read<TaskListBloc>()
-                                    .add(LoadTasks(projectId));
+                                    .add(LoadTasks(widget.projectId));
                               }
                             },
                           ),

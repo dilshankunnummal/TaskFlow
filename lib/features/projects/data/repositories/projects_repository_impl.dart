@@ -35,11 +35,18 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       {required String orgId}) async {
     try {
       final remoteModels = await _dataSource.getProjects(orgId: orgId);
+      final deletedIds = await _localDataSource.getDeletedProjectIds();
       for (final model in remoteModels) {
-        await _localDataSource.saveProject(model);
+        // Never overwrite (and thus erase) the tombstone of a locally-deleted project.
+        // Also never overwrite an existing local model (which may have user edits).
+        if (!deletedIds.contains(model.id)) {
+          final existingLocal = await _localDataSource.getProject(model.id);
+          if (existingLocal == null) {
+            await _localDataSource.saveProject(model);
+          }
+        }
       }
       final localModels = await _localDataSource.getProjectsForOrg(orgId);
-      final deletedIds = await _localDataSource.getDeletedProjectIds();
       final activeRemote = remoteModels
           .where((model) => !deletedIds.contains(model.id))
           .toList();
@@ -88,26 +95,34 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
         return const Left(NotFoundFailure());
       }
 
-      ProjectModel? remoteModel;
+      // Read the locally-edited version first. If it exists, it is the
+      // source of truth (the user may have edited it since the last remote
+      // fetch). Only fall back to the remote when there is no local copy.
+      final localModel = await _localDataSource.getProject(projectId);
+
+      if (localModel != null) {
+        final project = localModel.toEntity();
+        _lastSuccessfulProjectById[projectId] = project;
+        // Still fetch remote in the background to seed cache for new projects,
+        // but do NOT overwrite an existing local entry.
+        return Right(project);
+      }
+
+      // No local copy — fetch from remote and seed Hive.
       try {
-        remoteModel = await _dataSource.getProjectById(projectId: projectId);
+        final remoteModel =
+            await _dataSource.getProjectById(projectId: projectId);
         if (remoteModel != null) {
           await _localDataSource.saveProject(remoteModel);
+          final project = remoteModel.toEntity();
+          _lastSuccessfulProjectById[projectId] = project;
+          return Right(project);
         }
       } on NotFoundFailure {
-        remoteModel = null;
+        // fall through to NotFoundFailure below
       }
 
-      final localModel = await _localDataSource.getProject(projectId);
-      final resolvedModel = remoteModel ?? localModel;
-
-      if (resolvedModel == null) {
-        return const Left(NotFoundFailure());
-      }
-
-      final project = resolvedModel.toEntity();
-      _lastSuccessfulProjectById[projectId] = project;
-      return Right(project);
+      return const Left(NotFoundFailure());
     } on OfflineFailure {
       final localModel = await _localDataSource.getProject(projectId);
       final cached =
@@ -255,9 +270,12 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
 
   List<ProjectModel> _mergeProjectModels(
       List<ProjectModel> remote, List<ProjectModel> local) {
-    final byId = {for (final model in local) model.id: model};
-    for (final model in remote) {
-      byId[model.id] = model;
+    // Local entries are the source of truth — they may contain user edits.
+    // Start from remote (for projects only in the remote set), then let
+    // local overwrite so that any locally-edited project is never reverted.
+    final byId = {for (final model in remote) model.id: model};
+    for (final model in local) {
+      byId[model.id] = model; // local always wins over remote
     }
     return byId.values.toList();
   }

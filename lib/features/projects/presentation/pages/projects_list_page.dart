@@ -68,12 +68,15 @@ class _ProjectsListViewState extends State<ProjectsListView> {
 
   Future<void> _handleOpenProject(BuildContext context, Project project) async {
     final projectsBloc = context.read<ProjectsBloc>();
-    final deleted = await context.push<bool>('/projects/${project.id}');
-    if (deleted == true && context.mounted) {
+    final result = await context.push<bool>('/projects/${project.id}');
+    if (!context.mounted) return;
+    if (result == true) {
       projectsBloc.add(const RefreshProjects());
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Project deleted')));
+    } else {
+      projectsBloc.add(const RefreshProjects());
     }
   }
 
